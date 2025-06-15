@@ -147,7 +147,7 @@
         });
     });
 
-    const PORT = 3000;
+    const port = process.env.PORT || 3000;
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`Server läuft auf http://0.0.0.0:${PORT}`);
         console.log('Für lokales Netzwerk: http://[DEINE-IP]:3000');
