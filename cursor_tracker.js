@@ -1,6 +1,7 @@
 // WICHTIG: Ändere diese URL zu deiner Server-IP
-const SERVER_URL = 'ws://192.168.2.223:3000';
-
+const SERVER_URL = location.hostname === 'localhost'
+  ? 'ws://localhost:3000'
+  : 'wss://vdndmap-production.up.railway.app';
 class CursorTracker {
 	constructor(username) {
 		// Scales, Rotates, Manages all Tokens
