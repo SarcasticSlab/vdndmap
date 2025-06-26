@@ -9,8 +9,8 @@
 <body>
     <div class="toolbar">
             <div class="status" id="status">Ready - Enter your name</div>
-            <button class="toolbar-item" id="newToken">New Token</button>
             <button class="toolbar-item" onclick="triggerImageUpload()">Upload Image</button>
+            <button class="toolbar-item" id="event">Event</button>
             <div class="big checkbox-wrapper-8">
                 <input class="tgl tgl-skewed" id="scaleToggle" type="checkbox"/>
                 <label class="tgl-btn" data-tg-off="Fixed Objects" data-tg-on="Changeable" for="scaleToggle"></label>
@@ -25,43 +25,29 @@
                     <label class="tgl-btn" data-tg-off="No Hexagons" data-tg-on="Hex Grid" for="hexGrid"></label>
                 </div>
             </div>
-            
             <div class="big checkbox-wrapper-8">
                 <input class="tgl tgl-skewed" id="fadeOut" type="checkbox"/>
                 <label class="tgl-btn" data-tg-off="Instant fade" data-tg-on="5s fade" for="fadeOut"></label>
             </div>
-            <!--<div class="toolbar-toggle">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="scaleToggle" checked="true">
-                    <span class="slider"></span>
-                </label>
-                <label for="scaleToggle">Scale /<br/> Rotate</label>
+            <div class="big checkbox-wrapper-8">
+                <input class="tgl tgl-skewed" id="measurements" type="checkbox"/>
+                <label class="tgl-btn" data-tg-off="No Measures" data-tg-on="30ft Measures" for="measurements"></label>
             </div>
-            <div class="toolbar-toggle">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="squareGrid">
-                    <span class="slider"></span>
-                </label>
-                <label for="squareGrid">Square<br>Grid</label>
+            <div class="slider-wrapper big">
+                <div class="custom-slider-container">
+                    <input type="range" min="10" max="200" value="50" step="5" class="slider-skewed" id="sliderControl" />
+                    <!--<div class="slider-thumb-label" id="sliderThumbLabel">50</div>-->
+                </div>
+                <label for="sliderControl" id="sliderThumbLabel" class="slider-label">Zoom</label>
             </div>
-            <div class="toolbar-toggle">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="hexGrid">
-                    <span class="slider"></span>
-                </label>
-                <label for="hexGrid">Hex<br>Grid</label>
-            </div>
-            <div class="toolbar-toggle">
-                <label class="toggle-switch">
-                    <input type="checkbox" id="fadeOut">
-                    <span class="slider"></span>
-                </label>
-                <label for="fadeOut">Fade<br>Measures</label>
-            </div>-->
-            <input type="file" id="imageUploader" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+            <input type="file" id="imageUploader" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'left')">
     </div>
-    <div class="toolbar2" id="tokenZone">
-        <div class="image-strip" id="imageStrip"></div>
+
+    <div class="toolbar2-left" id="tokenZoneLeft">
+        <div class="image-strip" id="imageStripLeft"></div>
+    </div> 
+    <div class="toolbar2-right" id="tokenZoneRight">
+        <div class="image-strip" id="imageStripRight"></div>
     </div>        
     
     <div class="setup-info" id="setup-info">
@@ -72,15 +58,12 @@
         🖱️ Left Mouse Button: Open Menu for selected Token
     </div>
 
-    <!--<div class="canvas-container" id="canvas-container">
-        <div class="image-layer" id="image-layer"></div>
-    </div>-->
-
 <div id="canvas-container" style="position: relative;">
-  <canvas id="image-layer" class="canvas image-layer" width="3840" height="2160" style="z-index: 0;"></canvas>
-  <canvas id="grid-layer"  class="canvas" width="3840" height="2160"  style="z-index: 1;"></canvas>
-  <canvas id="token-layer"    class="canvas" width="3840" height="2160"  style="z-index: 2;"></canvas>
-  <canvas id="menu-layer"     class="canvas" width="3840" height="2160"   style="z-index: 3;"></canvas>
+  <canvas id="image-layer"  class="canvas image-layer" width="3840" height="2160" style="z-index: 0;"></canvas>
+  <canvas id="effect-layer" class="canvas" width="3840" height="2160" style="z-index: 6;"></canvas>
+  <canvas id="grid-layer"   class="canvas" width="3840" height="2160" style="z-index: 7;"></canvas>
+  <canvas id="token-layer"  class="canvas" width="3840" height="2160" style="z-index: 8;"></canvas>
+  <canvas id="menu-layer"   class="canvas" width="3840" height="2160" style="z-index: 9;"></canvas>
   <!--  pointer-events: none;-->
 </div>
     <div class="name-input" id="name-input">
@@ -94,6 +77,8 @@
 	<script src="./token.js"></script>
 	<script src="./main.js"></script>
 	<script src="./imageHandler.js"></script>
+	<script src="./sliderHandler.js"></script>
+	<script src="./effectHandler.js"></script>
 </html>
 <script>
 document.getElementById("username").value = makeid(5);

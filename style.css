@@ -179,10 +179,24 @@ canvas {
 	z-index: 1000;
 }
 
-.toolbar2 {
+.toolbar2-right {
 	position: fixed;
 	bottom: 0;
-	width: 100%;
+  right: 0;
+	width: 50%;
+	display: flex;
+	background-color: #1e1e1e;
+	padding: 0.5rem;
+	gap: 0.5rem;
+	border-bottom: 1px solid #333;
+	z-index: 1000;
+}
+
+.toolbar2-left {
+	position: fixed;
+	bottom: 0;
+  left: 0;
+	width: 50%;
 	display: flex;
 	background-color: #1e1e1e;
 	padding: 0.5rem;
@@ -413,3 +427,101 @@ canvas {
   .checkbox-wrapper-8 .tgl-skewed:checked + .tgl-btn:active:after {
     left: 10%;
   }
+  .slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  font-family: sans-serif;
+}
+
+.slider-wrapper.big {
+  height: 3em;
+}
+
+.slider-label {
+  font-weight: bold;
+  color: #fff;
+  background: #888;
+  padding: 0.5em 1em;
+  border-radius: 6px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+  transition: background 0.2s ease;
+}
+
+.slider-skewed {
+  -webkit-appearance: none;
+  width: 100%;
+  max-width: 200px;
+  height: 1em;
+  background: #ccc;
+  border-radius: 6px;
+  outline: none;
+  transition: background 0.2s;
+}
+
+/* Track */
+.slider-skewed::-webkit-slider-runnable-track {
+  height: 1em;
+  background: #86d993;
+  border-radius: 6px;
+}
+.slider-skewed::-moz-range-track {
+  height: 1em;
+  background: #86d993;
+  border-radius: 6px;
+}
+
+/* Thumb */
+.slider-skewed::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 2em;
+  height: 2em;
+  background: #fff;
+  border: 2px solid #666;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.slider-skewed::-moz-range-thumb {
+  width: 2em;
+  height: 2em;
+  background: #fff;
+  border: 2px solid #666;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+/* Thumb hover/active effect */
+.slider-skewed:hover::-webkit-slider-thumb,
+.slider-skewed:active::-webkit-slider-thumb {
+  transform: scale(1.1);
+}
+.slider-skewed:hover::-moz-range-thumb,
+.slider-skewed:active::-moz-range-thumb {
+  transform: scale(1.1);
+}
+.custom-slider-container {
+  position: relative;
+  width: 100px;
+}
+
+.slider-thumb-label {
+  position: absolute;
+  top: -0.6em; /* Adjust vertically */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2em;
+  height: 2em;
+  background: #fff;
+  border: 2px solid #666;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.9em;
+  line-height: 2em;
+  text-align: center;
+  pointer-events: none;
+  transition: left 0.05s ease;
+  color: #000
+}

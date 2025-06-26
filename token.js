@@ -1,5 +1,5 @@
 class Token {
-	constructor(id,x,y,color,rot,size,scale, image) {
+	constructor(id,x,y,color,rot,size,scale, image, type) {
 		this.id = id;
 		this.x = x;
 		this.y = y;
@@ -14,6 +14,7 @@ class Token {
 		this.tokenText = null;
 		this.image = new Image();
 		this.image.src = image;
+		this.type = type;
 		//console.log(id,x,y,color,rot,size,scale);
 	}
 	updateCoors(coors) {
@@ -50,6 +51,7 @@ class Token {
 		this.centerX = Math.round(data.centerX);
 		this.centerY = Math.round(data.centerY);
 		this.image.src = data.image;
+		this.type = data.type;
 	}
 	getCoors() {
 		return {x: this.centerX, y: this.centerY};
@@ -69,6 +71,8 @@ class TokenHandler {
 		this.tokenLayerCTX = this.tokenLayer.getContext("2d");
 		this.menuLayer = document.getElementById("menu-layer");
 		this.menuLayerCTX = this.menuLayer.getContext("2d");
+		this.effectLayer = document.getElementById("effect-layer");
+		this.effectLayerCTX = this.effectLayer.getContext("2d");
 		this.menuLeftScaleCoors = null;
 		this.menuRightScaleCoors = null;
 		this.menuRotateCoors = null;
@@ -102,18 +106,22 @@ class TokenHandler {
 		this.resetIcon = new Image();
 		this.resetIcon.src = "./icons/ResetIcon.png";
 
-		this.createToken = this.createToken.bind(this);
+		this.createTokenLeft = this.createTokenLeft.bind(this);
+		this.createTokenRight = this.createTokenRight.bind(this);
 		this.scaleToggle = this.scaleToggle.bind(this);
 		this.drawSquareGrid = this.drawSquareGrid.bind(this);
 		this.drawHexGrid = this.drawHexGrid.bind(this);
 		this.setPixelsForField = this.setPixelsForField.bind(this);
+		this.drawMeasurements = this.drawMeasurements.bind(this);
+		this.triggerEffect = this.triggerEffect.bind(this);
 		
-
+		this.effectId = null;
 		this.isDebugOutputActivated = false;
 		this.init();
 	}
 	
 	init() {
+		this.debugLog("Initializing TokenHandler");
 		this.scaleToBackgroundImage();
 		document.addEventListener('click', (e) => {
 			e.stopPropagation();
@@ -135,11 +143,19 @@ class TokenHandler {
 
 	}
 	
-	createToken(e) {
-		this.debugLog("createToken");
+	createTokenLeft(e) {
+		this.debugLog("createTokenLeft");
 		var id = Date.now();
-		this.tokens[id] = new Token(id,725,575, this.getRandomColor(), 0, 80,1, uploadedImages[selectedImageId].src);
+		this.tokens[id] = new Token(id,725,575, this.getRandomColor(), 0, 80,1, uploadedImages_left[selectedImageId_left].src, 'token');
 		
+		this.drawTokens();
+	}
+
+	createTokenRight(e) {
+		this.debugLog("createTokenRight");
+		var id = Date.now();
+		this.tokens[id] = new Token(id,725,575, this.getRandomColor(), 0, 80,1, uploadedImages_right[selectedImageId_right].src, 'schema');
+
 		this.drawTokens();
 	}
 	
@@ -152,9 +168,26 @@ class TokenHandler {
 		this.drawTokens();
 		return tokenId;
 	}
+	
+	scaleToken(key) {
+		this.debugLog("scaleToken");
+		if (this.menuId) {
+			var length = this.tokens[this.menuId].length;
+			var scale = this.tokens[this.menuId].scale;
+			var targetLength = length / this.gridSize;
+			if (key == "+") {
+				targetLength = Math.floor(targetLength) + 1;
+			} else if (key == "-") {
+				targetLength = Math.max(Math.floor(targetLength) - 1, 1);
+			}
+			targetLength = targetLength * this.gridSize;
+			this.tokens[this.menuId].updateScale(scale * targetLength / length);
+		}
+		this.drawTokens();
+		return this.menuId;
+	}
 
 	scaleToggle(e) {
-		console.log(this.isManipulationAllowed, " >>", e.target.checked);
 		this.isManipulationAllowed = e.target.checked;
 	}
 
@@ -165,7 +198,7 @@ class TokenHandler {
 		if(this.tokens[data.id]) {
 			this.tokens[data.id].update(data);
 		} else {
-			this.tokens[data.id] = new Token(data.id, data.x, data.y, data.color, data.rot, data.size, data.scale, data.image);
+			this.tokens[data.id] = new Token(data.id, data.x, data.y, data.color, data.rot, data.size, data.scale, data.image, data.type);
 		}
 		this.drawTokens();
 	}
@@ -254,33 +287,6 @@ class TokenHandler {
 		else return false;
 	}
 	
-	drawTestGrid() {
-		var offset = 100;
-		var margin = 15;
-		this.imageLayerCTX.beginPath(); // Start a new path
-		this.tokenLayerCTX.beginPath(); // Start a new path
-		this.menuLayerCTX.beginPath(); // Start a new path
-		for (var x = offset;x<this.imageLayer.clientWidth;x+=offset) {
-			for (var y = offset;y<this.imageLayer.clientHeight;y+=offset) {
-				this.imageLayerCTX.moveTo(0,y);
-				this.imageLayerCTX.lineTo(this.imageLayer.clientWidth, y);
-				this.imageLayerCTX.moveTo(x,0);
-				this.imageLayerCTX.lineTo(x, this.imageLayer.clientHeight);
-				this.tokenLayerCTX.moveTo(0,y+margin);
-				this.tokenLayerCTX.lineTo(this.tokenLayer.clientWidth, y+margin);
-				this.tokenLayerCTX.moveTo(x+margin,0);
-				this.tokenLayerCTX.lineTo(x+margin, this.tokenLayer.clientHeight);
-				this.menuLayerCTX.moveTo(0,y-margin);
-				this.menuLayerCTX.lineTo(this.menuLayer.clientWidth, y-margin);
-				this.menuLayerCTX.moveTo(x-margin,0);
-				this.menuLayerCTX.lineTo(x-margin, this.menuLayer.clientHeight);
-			}
-		}
-		this.imageLayerCTX.stroke();
-		this.tokenLayerCTX.stroke();
-		this.menuLayerCTX.stroke();
-	}
-	
 	createTestTokens(num) {
 		for (var i=0;i<num;i++) {
 			//let tempToken = new Token(i,Math.floor(Math.random()*700),Math.floor(Math.random()*500), this.getRandomColor(), Math.floor(Math.random()*360), Math.floor(Math.random()*40+80),1);
@@ -299,7 +305,6 @@ class TokenHandler {
 	}
 	
 	updateImageTransform() {
-		this.debugLog("updateImageTransformawTokens");
 		if (this.tokenLayer) {
 			this.tokenLayer.style.transform = 
 				`translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
@@ -316,20 +321,24 @@ class TokenHandler {
 			this.imageLayer.style.transform = 
 				`translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
 		}
+		if (this.effectLayer) {
+			this.effectLayer.style.transform = 
+				`translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
+		}
 	}
 	
 	drawTokens() {
 		if (!this.isLogReducingOn) this.debugLog("DrawTokens");
-		this.imageLayerCTX.clearRect(0, 0, this.tokenLayer.clientWidth, this.tokenLayer.clientHeight); // clear previous
+		this.tokenLayerCTX.clearRect(0, 0, this.tokenLayer.clientWidth, this.tokenLayer.clientHeight); // clear previous
 		Object.values(this.tokens).forEach((token) => {
-			this.imageLayerCTX.save();
+			this.tokenLayerCTX.save();
 			const angleInRadians = token.rot * Math.PI / 180;
-			this.imageLayerCTX.translate(token.centerX, token.centerY);
-			this.imageLayerCTX.rotate(angleInRadians);
+			this.tokenLayerCTX.translate(token.centerX, token.centerY);
+			this.tokenLayerCTX.rotate(angleInRadians);
 			
 			const drawSize = token.length;
 			if (token.image) {
-				this.imageLayerCTX.drawImage(
+				this.tokenLayerCTX.drawImage(
 					token.image,
 					-drawSize / 2,
 					-drawSize / 2,
@@ -337,21 +346,28 @@ class TokenHandler {
 					drawSize
 				);
 			} else {
-				this.imageLayerCTX.fillStyle = token.color;
-				this.imageLayerCTX.fillRect(token.x-token.centerX,token.y-token.centerY,token.length,token.length);
+				this.tokenLayerCTX.fillStyle = token.color;
+				this.tokenLayerCTX.fillRect(token.x-token.centerX,token.y-token.centerY,token.length,token.length);
 			}
-			/*this.imageLayerCTX.font = Math.max(20*token.scale,20) + 'px sans-serif';
-			this.imageLayerCTX.fillStyle = "#fff";
-			this.imageLayerCTX.textAlign = "center";      // Horizontal centering
-			this.imageLayerCTX.textBaseline = "bottom";   // Vertical centering
-			this.imageLayerCTX.fillText(token.id, 0, -token.length/2);
-			this.imageLayerCTX.rotate(90 * Math.PI / 180);
-			this.imageLayerCTX.fillText(token.id, 0, -token.length/2);
-			this.imageLayerCTX.rotate(90 * Math.PI / 180);
-			this.imageLayerCTX.fillText(token.id, 0, -token.length/2);
-			this.imageLayerCTX.rotate(90 * Math.PI / 180);
-			this.imageLayerCTX.fillText(token.id, 0, -token.length/2);*/
-			this.imageLayerCTX.restore();
+			if (token.type == 'schema') {
+				const fontSize = 40;
+				this.tokenLayerCTX.font = `${fontSize}px sans-serif`;
+				this.tokenLayerCTX.textBaseline = "middle";
+				this.tokenLayerCTX.textAlign = "center";
+				this.tokenLayerCTX.lineWidth = 5;
+				this.tokenLayerCTX.fillStyle = "#fff";
+				var length = token.length;
+				var targetLength = Math.floor(5 * length / this.gridSize);
+				//drawLabelBackground(this.tokenLayerCTX, 0, 0, `${targetLength}`);
+				this.tokenLayerCTX.fillText(`${targetLength}`, 0, -length/2-fontSize/2);
+				this.tokenLayerCTX.rotate(Math.PI / 2);
+				this.tokenLayerCTX.fillText(`${targetLength}`, 0, -length/2-fontSize/2);
+				this.tokenLayerCTX.rotate(Math.PI / 2);
+				this.tokenLayerCTX.fillText(`${targetLength}`, 0, -length/2-fontSize/2);
+				this.tokenLayerCTX.rotate(Math.PI / 2);
+				this.tokenLayerCTX.fillText(`${targetLength}`, 0, -length/2-fontSize/2);
+			}
+			this.tokenLayerCTX.restore();
 		});
 	}
 	
@@ -390,6 +406,132 @@ class TokenHandler {
 		this.menu = false;
 	}
 	
+	drawMeasurements(e) {
+		if (e.target.checked) {
+			const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+			const spacing = this.gridSize * 6;
+			const tickLength = 50;
+			const fontSize = 40;
+			const labelPadding = 10;
+			const labelOffset = 10;
+			
+			this.debugLog("drawMeasurements");
+
+			const width = this.imageLayer.clientWidth;
+			const height = this.imageLayer.clientHeight;
+
+			this.imageLayerCTX.font = `${fontSize}px sans-serif`;
+			this.imageLayerCTX.textBaseline = "middle";
+			this.imageLayerCTX.textAlign = "center";
+			this.imageLayerCTX.lineWidth = 5;
+			this.imageLayerCTX.fillStyle = "#fff";
+
+			// Set label background style
+			const drawLabelBackground = (ctx, x, y, text) => {
+				const metrics = ctx.measureText(text);
+				const textWidth = metrics.width;
+				const textHeight = fontSize;
+				ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+				ctx.fillRect(x - textWidth / 2 - labelPadding, y - textHeight / 2, textWidth + labelPadding * 2, textHeight);
+				ctx.fillStyle = "#fff";
+			};
+
+			for (let incr = 0; incr < width; incr += spacing) {
+				// Top tick
+				this.imageLayerCTX.beginPath();
+				this.imageLayerCTX.moveTo(incr, 0);
+				this.imageLayerCTX.lineTo(incr, tickLength);
+				this.imageLayerCTX.stroke();
+
+				// Bottom tick
+				this.imageLayerCTX.beginPath();
+				this.imageLayerCTX.moveTo(incr, height);
+				this.imageLayerCTX.lineTo(incr, height - tickLength);
+				this.imageLayerCTX.stroke();
+
+				const labelX = incr + spacing / 2;
+				const labelYTop = labelOffset + fontSize / 2;
+				const labelYBottom = height - labelOffset - fontSize / 2;
+
+				if (labelX < width) {
+					const labelXinFoot = letters[(labelX-spacing/2) / spacing];
+					const label = `${labelXinFoot}`;
+					drawLabelBackground(this.imageLayerCTX, labelX, labelYTop, label);
+					this.imageLayerCTX.fillText(label, labelX, labelYTop);
+
+					drawLabelBackground(this.imageLayerCTX, labelX, labelYBottom, label);
+					this.imageLayerCTX.fillText(label, labelX, labelYBottom);
+				}
+			}
+
+			for (let incr = 0; incr < height; incr += spacing) {
+				// Left tick
+				this.imageLayerCTX.beginPath();
+				this.imageLayerCTX.moveTo(0, incr);
+				this.imageLayerCTX.lineTo(tickLength, incr);
+				this.imageLayerCTX.stroke();
+
+				// Right tick
+				this.imageLayerCTX.beginPath();
+				this.imageLayerCTX.moveTo(width, incr);
+				this.imageLayerCTX.lineTo(width - tickLength, incr);
+				this.imageLayerCTX.stroke();
+
+				const labelY = incr + spacing / 2;
+				const labelXLeft = labelOffset + fontSize / 2;
+				const labelXRight = width - labelOffset - fontSize / 2;
+
+				if (labelY < height) {
+					const labelYinFoot = (3+labelY / this.gridSize)/6;
+					const label = `${labelYinFoot}`;
+					drawLabelBackground(this.imageLayerCTX, labelXLeft, labelY, label);
+					this.imageLayerCTX.fillText(label, labelXLeft, labelY);
+
+					drawLabelBackground(this.imageLayerCTX, labelXRight, labelY, label);
+					this.imageLayerCTX.fillText(label, labelXRight, labelY);
+				}
+			}
+
+			// Draw crosses at grid intersections
+			for (let x = 0; x < width; x += spacing) {
+				for (let y = 0; y < height; y += spacing) {
+					this.imageLayerCTX.lineWidth = 9;
+					this.imageLayerCTX.strokeStyle = '#000'; // Cross color
+					const halfTick = tickLength / 2;
+
+					// Vertical part of cross dark
+					this.imageLayerCTX.beginPath();
+					this.imageLayerCTX.moveTo(x, y - halfTick);
+					this.imageLayerCTX.lineTo(x, y + halfTick);
+					this.imageLayerCTX.stroke();
+
+					// Horizontal part of cross dark
+					this.imageLayerCTX.beginPath();
+					this.imageLayerCTX.moveTo(x - halfTick, y);
+					this.imageLayerCTX.lineTo(x + halfTick, y);
+					this.imageLayerCTX.stroke();
+
+					this.imageLayerCTX.lineWidth = 3;
+					this.imageLayerCTX.strokeStyle = '#fff'; // Cross color
+					
+					// Vertical part of cross light
+					this.imageLayerCTX.beginPath();
+					this.imageLayerCTX.moveTo(x, y - halfTick);
+					this.imageLayerCTX.lineTo(x, y + halfTick);
+					this.imageLayerCTX.stroke();
+
+					// Horizontal part of cross light
+					this.imageLayerCTX.beginPath();
+					this.imageLayerCTX.moveTo(x - halfTick, y);
+					this.imageLayerCTX.lineTo(x + halfTick, y);
+					this.imageLayerCTX.stroke();
+				}
+			}
+		} else {
+			this.imageLayerCTX.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight); // clear previous
+		}
+	}
+
 	drawSquareGrid(e, gridSize = this.gridSize) {
 		console.log("drawSquareGrid");
 		if (e.target.checked) {
@@ -429,10 +571,10 @@ class TokenHandler {
 			const width = this.imageLayer.clientWidth;
 			const height = this.imageLayer.clientHeight;
 
-			const hexWidth = gridSize+4;
-			const hexHeight = Math.sqrt(3) / 2 * hexWidth;
-			const horizSpacing = hexWidth * 0.75;
-			const vertSpacing = hexHeight;
+			const hexWidth = gridSize / (Math.sqrt(3) / 2);
+			const hexHeight = gridSize;
+			const horizSpacing = gridSize;
+			const vertSpacing = gridSize;
 
 			ctx.clearRect(0, 0, width, height);
 			ctx.strokeStyle = '#ccc5';
@@ -441,7 +583,7 @@ class TokenHandler {
 			for (let y = 0; y < height + hexHeight; y += vertSpacing) {
 				let row = Math.floor(y / vertSpacing);
 				for (let x = 0; x < width + hexWidth; x += horizSpacing) {
-					let col = Math.floor(x / horizSpacing);
+					let col = Math.round(x / horizSpacing);
 					let offsetY = (col % 2) * (hexHeight / 2);
 					this.drawHex(ctx, x, y+offsetY, hexWidth);
 				}
@@ -495,6 +637,10 @@ class TokenHandler {
 	
 	setPixelsForField(px) {
 		this.gridSize = px;
+		console.log("setPixelsForField", px);
+		this.drawHexGrid({target: {checked: document.getElementById("hexGrid").checked}}, px);
+		this.drawSquareGrid({target: {checked: document.getElementById("squareGrid").checked}}, px);
+		this.drawMeasurements({target: {checked: document.getElementById("measurements").checked}});
 	}
 
 	getRandomColor() {
@@ -522,7 +668,8 @@ class TokenHandler {
 				document.getElementById("image-layer"),
 				document.getElementById("grid-layer"),
 				document.getElementById("token-layer"),
-				document.getElementById("menu-layer")
+				document.getElementById("menu-layer"),
+				document.getElementById("effect-layer")
 			];
 
 			const canvas = layers[0];
@@ -548,4 +695,12 @@ class TokenHandler {
 		};
 	}
 
+	triggerEffect() {
+		console.log("Triggering effect");
+		if (!this.effectId) {
+			this.effectLayerCTX.fillStyle = this.getRandomColor();
+			this.effectLayerCTX.fillRect(Math.random() * this.effectLayer.clientWidth, Math.random() * this.effectLayer.clientHeight, 50, 50);
+			this.effectId = 1;
+		}
+	}
 }

@@ -1,12 +1,13 @@
 // WICHTIG: Ändere diese URL zu deiner Server-IP
-const SERVER_URL = location.hostname === 'localhost'
-  ? 'ws://localhost:3000'
-  : 'wss://vdndmap-production.up.railway.app';
+//const SERVER_URL = 'ws://vdnd.duckdns.org:3000'; // or wss:// if you're using HTTPS
+const SERVER_URL = 'ws://localhost:3000'; // for local testing
+
 class CursorTracker {
 	constructor(username) {
 		// Scales, Rotates, Manages all Tokens
-		this.tokenHandlerElement = new TokenHandler();;
-		
+		this.tokenHandlerElement = new TokenHandler();
+		this.effectHandlerElement = new EffectHandler();
+
 		// Cursor Tracker objects
 		this.ws = null;
 		this.cursors = new Map();
@@ -36,6 +37,8 @@ class CursorTracker {
 		this.fadeOut = this.fadeOut.bind(this); // ✅ bind once here
 
 		this.pixelsForField = 30;
+		this.slider = document.getElementById("sliderControl");
+		this.thumbLabel = document.getElementById("sliderThumbLabel");
 		this.init();
 	}
 	
@@ -54,11 +57,17 @@ class CursorTracker {
 		//this.tokenHandlerElement.createTestTokens(4);
 		this.tokenHandlerElement.drawTokens();
 		this.tokenHandlerElement.setPixelsForField(this.pixelsForField);
-		document.getElementById("newToken").addEventListener("click", this.tokenHandlerElement.createToken);
+		this.updateThumbLabel();
+		document.getElementById("sliderThumbLabel").addEventListener("input", this.updateThumbLabel);
+		document.getElementById("imageStripLeft").addEventListener("dblclick", this.tokenHandlerElement.createTokenLeft);
+		document.getElementById("imageStripRight").addEventListener("dblclick", this.tokenHandlerElement.createTokenRight);
 		document.getElementById("scaleToggle").addEventListener("click", this.tokenHandlerElement.scaleToggle);
 		document.getElementById("squareGrid").addEventListener("click", this.tokenHandlerElement.drawSquareGrid);
 		document.getElementById("hexGrid").addEventListener("click", this.tokenHandlerElement.drawHexGrid);
 		document.getElementById("fadeOut").addEventListener("click", this.fadeOut);
+		document.getElementById("measurements").addEventListener("click", this.tokenHandlerElement.drawMeasurements);
+		document.getElementById("event").addEventListener("click", this.effectHandlerElement.trigger);
+
 	}
 
 	fadeOut(e) {
@@ -140,10 +149,10 @@ class CursorTracker {
 			this.removeCursor(data.userId);
 		} else if (data.type === 'token_update' && data.userId !== this.userId) {
 			this.tokenHandlerElement.updateToken(data);
-			this.tokenHandlerElement.drawTokens();
 		} else if (data.type === 'token_del' && data.userId !== this.userId) {
 			this.tokenHandlerElement.deleteToken(data.id);
-			this.tokenHandlerElement.drawTokens();
+		} else if (data.type === 'token_scale' && data.userId !== this.userId) {
+			this.tokenHandlerElement.scaleToken(data.scale);
 		}
 	}
 
@@ -184,7 +193,10 @@ class CursorTracker {
 		document.addEventListener('keydown', (event) => {
 			if (event.key === 'Delete') {
 				this.handleDelete();
+			}  else if (event.key === '+' || event.key === '-') {
+				this.handleScale(event.key);
 			}
+			else console.log(`Key pressed: ${event.key}`);
 		});
 
 		document.addEventListener(
@@ -270,7 +282,8 @@ class CursorTracker {
 				length: tokenUpdate.length,
 				centerX: tokenUpdate.centerX,
 				centerY: tokenUpdate.centerY,
-				image: tokenUpdate.image.src
+				image: tokenUpdate.image.src,
+				type: tokenUpdate.type
 			}));
 		}
 	}
@@ -283,6 +296,19 @@ class CursorTracker {
 				type: 'token_del',
 				userId: this.userId,
 				id: delToken
+			}));
+		}
+	}
+	
+	handleScale(key) {
+		var scaleToken = this.tokenHandlerElement.scaleToken(key);
+		if (this.ws && this.isConnected && scaleToken) {
+			//console.log("Sent",tokenUpdate);
+			this.ws.send(JSON.stringify({
+				type: 'token_scale',
+				userId: this.userId,
+				id: scaleToken,
+				scale: key
 			}));
 		}
 	}
@@ -514,18 +540,13 @@ class CursorTracker {
 		}
 	}
 
-	/*removeDistanceMeasurement() {
-		for (let i = 0; i < this.measurePoints.length; i++) {
-			if (this.distanceLine[i]) {
-				this.distanceLine[i].remove();
-				this.distanceLine[i] = null;
-			}
-			if (this.distanceLabel[i]) {
-				this.distanceLabel[i].remove();
-				this.distanceLabel[i] = null;
-			}
-		}
-	}*/
+	updateThumbLabel() {
+		const val = parseInt(this.slider.value);
+
+		this.thumbLabel.textContent = val;
+		this.tokenHandlerElement.setPixelsForField(val);
+		this.pixelsForField = val;
+	}
 
 	fadeOutAndRemove(el) {
 		if (!el) return;

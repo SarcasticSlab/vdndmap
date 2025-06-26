@@ -104,7 +104,8 @@
                                 length: data.length,
                                 centerX: data.centerX,
                                 centerY: data.centerY,
-                                image: data.image
+                                image: data.image,
+                                type: data.type
                             }));
                         }
                     });
@@ -116,6 +117,18 @@
                                 type: 'token_del',
                                 userId: data.userId,
 								id: data.id
+                            }));
+                        }
+                    });
+                } else if (data.type === 'token_scale') {
+                    // Teile anderen mit, dass User disconnected ist
+                    wss.clients.forEach((client) => {
+                        if (client !== ws && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'token_scale',
+                                userId: data.userId,
+								id: data.id,
+								scale: data.scale
                             }));
                         }
                     });
@@ -148,7 +161,8 @@
     });
 
     const port = process.env.PORT || 3000;
-    server.listen(port, '0.0.0.0', () => {
+    //server.listen(port, '0.0.0.0', () => {
+    server.listen(port, '::', () => {
         console.log(`Server läuft auf http://0.0.0.0:${port}`);
         console.log('Für lokales Netzwerk: http://[DEINE-IP]:3000');
     });
