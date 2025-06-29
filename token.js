@@ -703,4 +703,14 @@ class TokenHandler {
 			this.effectId = 1;
 		}
 	}
+
+	getTokens() {
+		var OutputTokens = {};
+		Object.values(this.tokens).forEach((token) => {
+			if (token.type == 'token') {
+				OutputTokens[token.id] = token;
+			}
+		});
+		return OutputTokens;
+	}
 }

@@ -6,7 +6,7 @@ class CursorTracker {
 	constructor(username) {
 		// Scales, Rotates, Manages all Tokens
 		this.tokenHandlerElement = new TokenHandler();
-		this.effectHandlerElement = new EffectHandler();
+		this.effectHandlerElement = new EffectHandler(this.tokenHandlerElement);
 
 		// Cursor Tracker objects
 		this.ws = null;
@@ -67,7 +67,15 @@ class CursorTracker {
 		document.getElementById("fadeOut").addEventListener("click", this.fadeOut);
 		document.getElementById("measurements").addEventListener("click", this.tokenHandlerElement.drawMeasurements);
 		document.getElementById("event").addEventListener("click", this.effectHandlerElement.trigger);
-
+		document.addEventListener("diceRolled", (event, e) => {
+			if (this.ws && this.isConnected) {
+				this.ws.send(JSON.stringify({
+					type: 'diceRolled',
+					userId: event.detail.userId,
+					result: event.detail.result
+				}));
+			}
+		});
 	}
 
 	fadeOut(e) {
@@ -153,6 +161,10 @@ class CursorTracker {
 			this.tokenHandlerElement.deleteToken(data.id);
 		} else if (data.type === 'token_scale' && data.userId !== this.userId) {
 			this.tokenHandlerElement.scaleToken(data.scale);
+		} else if (data.type === 'diceRolled' && data.userId !== this.userId) {
+			this.diceRolled(data);
+		} else {
+			console.warn('Unbekannte Nachricht vom Server:', data);
 		}
 	}
 
@@ -224,6 +236,11 @@ class CursorTracker {
 		window.addEventListener('resize', () => {
 			this.setupInitialView();
 		});
+	}
+
+	diceRolled(data) {
+		console.log(data);
+		document.getElementById('resultLog').textContent += data.result;
 	}
 
 	handleMouseMove(e) {
@@ -299,7 +316,7 @@ class CursorTracker {
 			}));
 		}
 	}
-	
+
 	handleScale(key) {
 		var scaleToken = this.tokenHandlerElement.scaleToken(key);
 		if (this.ws && this.isConnected && scaleToken) {

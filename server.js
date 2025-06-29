@@ -110,7 +110,7 @@
                         }
                     });
                 } else if (data.type === 'token_del') {
-                    // Teile anderen mit, dass User disconnected ist
+                    // Teile anderen mit, dass ein Token gelöscht wurde
                     wss.clients.forEach((client) => {
                         if (client !== ws && client.readyState === WebSocket.OPEN) {
                             client.send(JSON.stringify({
@@ -121,7 +121,7 @@
                         }
                     });
                 } else if (data.type === 'token_scale') {
-                    // Teile anderen mit, dass User disconnected ist
+                    // Teile anderen mit, dass Token skaliert wurde
                     wss.clients.forEach((client) => {
                         if (client !== ws && client.readyState === WebSocket.OPEN) {
                             client.send(JSON.stringify({
@@ -129,6 +129,17 @@
                                 userId: data.userId,
 								id: data.id,
 								scale: data.scale
+                            }));
+                        }
+                    });
+                } else if (data.type === 'diceRolled') {
+                    // Teile anderen mit, dass gewürfelt wurde
+                    wss.clients.forEach((client) => {
+                        if (client !== ws && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'diceRolled',
+                                userId: data.userId,
+								result: data.result
                             }));
                         }
                     });

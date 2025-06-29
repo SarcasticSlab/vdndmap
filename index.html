@@ -42,6 +42,20 @@
             </div>
             <input type="file" id="imageUploader" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'left')">
     </div>
+    <div class="toolbar-right">
+        <div class="group-label">Amount</div>
+        <div class="radio-group" id="amountGroup"></div>
+
+        <div class="group-label">Dice Type</div>
+        <div class="radio-group" id="facesGroup"></div>
+
+        <div class="roll-button">
+            <button class="dice-item" onclick="handleRoll()">Roll</button>
+        </div>
+
+        <div id="result"></div>
+        <div id="resultLog"></div>
+    </div>
 
     <div class="toolbar2-left" id="tokenZoneLeft">
         <div class="image-strip" id="imageStripLeft"></div>
@@ -58,12 +72,12 @@
         🖱️ Left Mouse Button: Open Menu for selected Token
     </div>
 
-<div id="canvas-container" style="position: relative;">
-  <canvas id="image-layer"  class="canvas image-layer" width="3840" height="2160" style="z-index: 0;"></canvas>
-  <canvas id="effect-layer" class="canvas" width="3840" height="2160" style="z-index: 6;"></canvas>
-  <canvas id="grid-layer"   class="canvas" width="3840" height="2160" style="z-index: 7;"></canvas>
-  <canvas id="token-layer"  class="canvas" width="3840" height="2160" style="z-index: 8;"></canvas>
-  <canvas id="menu-layer"   class="canvas" width="3840" height="2160" style="z-index: 9;"></canvas>
+<div id="canvas-container" style="position: relative;"> <!-- 3840x2160-->
+  <canvas id="image-layer"  class="canvas image-layer" width="1000" height="1000" style="z-index: 0;"></canvas>
+  <canvas id="effect-layer" class="canvas" width="1000" height="1000" style="z-index: 6;"></canvas>
+  <canvas id="grid-layer"   class="canvas" width="1000" height="1000" style="z-index: 7;"></canvas>
+  <canvas id="token-layer"  class="canvas" width="1000" height="1000" style="z-index: 8;"></canvas>
+  <canvas id="menu-layer"   class="canvas" width="1000" height="1000" style="z-index: 9;"></canvas>
   <!--  pointer-events: none;-->
 </div>
     <div class="name-input" id="name-input">
@@ -79,6 +93,7 @@
 	<script src="./imageHandler.js"></script>
 	<script src="./sliderHandler.js"></script>
 	<script src="./effectHandler.js"></script>
+	<script src="./diceHandler.js"></script>
 </html>
 <script>
 document.getElementById("username").value = makeid(5);
