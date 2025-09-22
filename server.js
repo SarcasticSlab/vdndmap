@@ -143,6 +143,17 @@
                             }));
                         }
                     });
+                } else if (data.type === 'effect_update') {
+                    // Teile anderen mit, dass ein Effekt hinzugefügt wurde
+                    wss.clients.forEach((client) => {
+                        if (client !== ws && client.readyState === WebSocket.OPEN) {
+                            client.send(JSON.stringify({
+                                type: 'effect_update',
+                                userId: data.userId,
+                                image: data.image
+                            }));
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Fehler beim Parsen der Nachricht:', error);

@@ -73,6 +73,8 @@ class TokenHandler {
 		this.menuLayerCTX = this.menuLayer.getContext("2d");
 		this.effectLayer = document.getElementById("effect-layer");
 		this.effectLayerCTX = this.effectLayer.getContext("2d");
+		this.measureLayer = document.getElementById("measure-layer");
+		this.measureLayerCTX = this.measureLayer.getContext("2d");
 		this.menuLeftScaleCoors = null;
 		this.menuRightScaleCoors = null;
 		this.menuRotateCoors = null;
@@ -317,6 +319,10 @@ class TokenHandler {
 			this.gridLayer.style.transform = 
 				`translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
 		}
+		if (this.measureLayer) {
+			this.measureLayer.style.transform = 
+				`translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
+		}
 		if (this.imageLayer) {
 			this.imageLayer.style.transform = 
 				`translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
@@ -417,14 +423,14 @@ class TokenHandler {
 			
 			this.debugLog("drawMeasurements");
 
-			const width = this.imageLayer.clientWidth;
-			const height = this.imageLayer.clientHeight;
+			const width = this.measureLayer.clientWidth;
+			const height = this.measureLayer.clientHeight;
 
-			this.imageLayerCTX.font = `${fontSize}px sans-serif`;
-			this.imageLayerCTX.textBaseline = "middle";
-			this.imageLayerCTX.textAlign = "center";
-			this.imageLayerCTX.lineWidth = 5;
-			this.imageLayerCTX.fillStyle = "#fff";
+			this.measureLayerCTX.font = `${fontSize}px sans-serif`;
+			this.measureLayerCTX.textBaseline = "middle";
+			this.measureLayerCTX.textAlign = "center";
+			this.measureLayerCTX.lineWidth = 5;
+			this.measureLayerCTX.fillStyle = "#fff";
 
 			// Set label background style
 			const drawLabelBackground = (ctx, x, y, text) => {
@@ -438,16 +444,16 @@ class TokenHandler {
 
 			for (let incr = 0; incr < width; incr += spacing) {
 				// Top tick
-				this.imageLayerCTX.beginPath();
-				this.imageLayerCTX.moveTo(incr, 0);
-				this.imageLayerCTX.lineTo(incr, tickLength);
-				this.imageLayerCTX.stroke();
+				this.measureLayerCTX.beginPath();
+				this.measureLayerCTX.moveTo(incr, 0);
+				this.measureLayerCTX.lineTo(incr, tickLength);
+				this.measureLayerCTX.stroke();
 
 				// Bottom tick
-				this.imageLayerCTX.beginPath();
-				this.imageLayerCTX.moveTo(incr, height);
-				this.imageLayerCTX.lineTo(incr, height - tickLength);
-				this.imageLayerCTX.stroke();
+				this.measureLayerCTX.beginPath();
+				this.measureLayerCTX.moveTo(incr, height);
+				this.measureLayerCTX.lineTo(incr, height - tickLength);
+				this.measureLayerCTX.stroke();
 
 				const labelX = incr + spacing / 2;
 				const labelYTop = labelOffset + fontSize / 2;
@@ -456,26 +462,26 @@ class TokenHandler {
 				if (labelX < width) {
 					const labelXinFoot = letters[(labelX-spacing/2) / spacing];
 					const label = `${labelXinFoot}`;
-					drawLabelBackground(this.imageLayerCTX, labelX, labelYTop, label);
-					this.imageLayerCTX.fillText(label, labelX, labelYTop);
+					drawLabelBackground(this.measureLayerCTX, labelX, labelYTop, label);
+					this.measureLayerCTX.fillText(label, labelX, labelYTop);
 
-					drawLabelBackground(this.imageLayerCTX, labelX, labelYBottom, label);
-					this.imageLayerCTX.fillText(label, labelX, labelYBottom);
+					drawLabelBackground(this.measureLayerCTX, labelX, labelYBottom, label);
+					this.measureLayerCTX.fillText(label, labelX, labelYBottom);
 				}
 			}
 
 			for (let incr = 0; incr < height; incr += spacing) {
 				// Left tick
-				this.imageLayerCTX.beginPath();
-				this.imageLayerCTX.moveTo(0, incr);
-				this.imageLayerCTX.lineTo(tickLength, incr);
-				this.imageLayerCTX.stroke();
+				this.measureLayerCTX.beginPath();
+				this.measureLayerCTX.moveTo(0, incr);
+				this.measureLayerCTX.lineTo(tickLength, incr);
+				this.measureLayerCTX.stroke();
 
 				// Right tick
-				this.imageLayerCTX.beginPath();
-				this.imageLayerCTX.moveTo(width, incr);
-				this.imageLayerCTX.lineTo(width - tickLength, incr);
-				this.imageLayerCTX.stroke();
+				this.measureLayerCTX.beginPath();
+				this.measureLayerCTX.moveTo(width, incr);
+				this.measureLayerCTX.lineTo(width - tickLength, incr);
+				this.measureLayerCTX.stroke();
 
 				const labelY = incr + spacing / 2;
 				const labelXLeft = labelOffset + fontSize / 2;
@@ -484,51 +490,51 @@ class TokenHandler {
 				if (labelY < height) {
 					const labelYinFoot = (3+labelY / this.gridSize)/6;
 					const label = `${labelYinFoot}`;
-					drawLabelBackground(this.imageLayerCTX, labelXLeft, labelY, label);
-					this.imageLayerCTX.fillText(label, labelXLeft, labelY);
+					drawLabelBackground(this.measureLayerCTX, labelXLeft, labelY, label);
+					this.measureLayerCTX.fillText(label, labelXLeft, labelY);
 
-					drawLabelBackground(this.imageLayerCTX, labelXRight, labelY, label);
-					this.imageLayerCTX.fillText(label, labelXRight, labelY);
+					drawLabelBackground(this.measureLayerCTX, labelXRight, labelY, label);
+					this.measureLayerCTX.fillText(label, labelXRight, labelY);
 				}
 			}
 
 			// Draw crosses at grid intersections
 			for (let x = 0; x < width; x += spacing) {
 				for (let y = 0; y < height; y += spacing) {
-					this.imageLayerCTX.lineWidth = 9;
-					this.imageLayerCTX.strokeStyle = '#000'; // Cross color
+					this.measureLayerCTX.lineWidth = 9;
+					this.measureLayerCTX.strokeStyle = '#000'; // Cross color
 					const halfTick = tickLength / 2;
 
 					// Vertical part of cross dark
-					this.imageLayerCTX.beginPath();
-					this.imageLayerCTX.moveTo(x, y - halfTick);
-					this.imageLayerCTX.lineTo(x, y + halfTick);
-					this.imageLayerCTX.stroke();
+					this.measureLayerCTX.beginPath();
+					this.measureLayerCTX.moveTo(x, y - halfTick);
+					this.measureLayerCTX.lineTo(x, y + halfTick);
+					this.measureLayerCTX.stroke();
 
 					// Horizontal part of cross dark
-					this.imageLayerCTX.beginPath();
-					this.imageLayerCTX.moveTo(x - halfTick, y);
-					this.imageLayerCTX.lineTo(x + halfTick, y);
-					this.imageLayerCTX.stroke();
+					this.measureLayerCTX.beginPath();
+					this.measureLayerCTX.moveTo(x - halfTick, y);
+					this.measureLayerCTX.lineTo(x + halfTick, y);
+					this.measureLayerCTX.stroke();
 
-					this.imageLayerCTX.lineWidth = 3;
-					this.imageLayerCTX.strokeStyle = '#fff'; // Cross color
+					this.measureLayerCTX.lineWidth = 3;
+					this.measureLayerCTX.strokeStyle = '#fff'; // Cross color
 					
 					// Vertical part of cross light
-					this.imageLayerCTX.beginPath();
-					this.imageLayerCTX.moveTo(x, y - halfTick);
-					this.imageLayerCTX.lineTo(x, y + halfTick);
-					this.imageLayerCTX.stroke();
+					this.measureLayerCTX.beginPath();
+					this.measureLayerCTX.moveTo(x, y - halfTick);
+					this.measureLayerCTX.lineTo(x, y + halfTick);
+					this.measureLayerCTX.stroke();
 
 					// Horizontal part of cross light
-					this.imageLayerCTX.beginPath();
-					this.imageLayerCTX.moveTo(x - halfTick, y);
-					this.imageLayerCTX.lineTo(x + halfTick, y);
-					this.imageLayerCTX.stroke();
+					this.measureLayerCTX.beginPath();
+					this.measureLayerCTX.moveTo(x - halfTick, y);
+					this.measureLayerCTX.lineTo(x + halfTick, y);
+					this.measureLayerCTX.stroke();
 				}
 			}
 		} else {
-			this.imageLayerCTX.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight); // clear previous
+			this.measureLayerCTX.clearRect(0, 0, this.measureLayer.clientWidth, this.measureLayer.clientHeight); // clear previous
 		}
 	}
 

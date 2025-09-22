@@ -6,15 +6,29 @@ class EffectHandler {
 		this.tokenHandler = tokenHandler;
 
         this.trigger = this.trigger.bind(this);
+        this.clearEffects = this.clearEffects.bind(this);
         this.state = null;
         this.effect = null;
-        this.listOfEffects = [/*'claws', 'growingDots', 'spikyTriangle','hexagons','lines', */'void'];
+        this.listOfEffects = [/*'claws', 'growingDots', 'spikyTriangle','hexagons','lines', 'void', */'randomRoom'];
         this.dotHistory = {};
+        const patternFiles = ["brick-pattern.png", "forest-pattern.png", "grass-pattern.png", "grass-rock-pattern.png", "lava-pattern.png", "marmor-pattern.png", "magic-pattern.png", "magic-pattern-2.png", "sand-pattern.png", "stone-pattern.png", "stone-pattern-2.png", "water-pattern.png"];
+        const effectFiles = ["energy-circle.png", "fire-circle.png"];
+        this.groundImages = {};
+        this.effectImages = {};
+        patternFiles.forEach(file => {
+        const name = file.replace(/\.[^/.]+$/, "");
+        this.groundImages[name] = new Image();
+        this.groundImages[name].src = "/patterns/" + file;
+        });
+        effectFiles.forEach(file => {
+        const name = file.replace(/\.[^/.]+$/, "");
+        this.effectImages[name] = new Image();
+        this.effectImages[name].src = "/patterns/" + file;
+        });
 	}
     getRandomEffect() {
         return this.listOfEffects[Math.floor(Math.random() * this.listOfEffects.length)];
     }
-
     trigger() {
         const clawLength = 250;
         const clawPadding = 50;
@@ -30,7 +44,8 @@ class EffectHandler {
         if (this.state == null) {
             this.effect = this.getRandomEffect();
             this.ctx.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight);
-                this.dotHistory = {}; // Reset dot history
+            this.drawRectangle(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight, 'black', 1, true);
+            this.dotHistory = {}; // Reset dot history
             if (this.effect == 'claws') {
                 this.createClaw(clawLength, clawPadding, 'red', 1);
                 this.state = 1;
@@ -52,6 +67,9 @@ class EffectHandler {
             } else if (this.effect == 'void') {
                 this.state = 0;
                 this.createVoid('darkgray', voidWidth);
+            } else if (this.effect == 'randomRoom') {
+                this.state = 0;
+                this.createRoom(this.state);
             }
         } else if (this.effect == 'claws') {
             this.state+=2;
@@ -77,7 +95,15 @@ class EffectHandler {
             this.state++;
             this.createVoid('darkgray', voidWidth);
             if (this.state > 3) this.clearState();
+        } else if (this.effect == 'randomRoom') {
+            this.state++;
+            this.createRoom(this.state);
+            if (this.state > 1) {
+                this.clearState();
+                this.isleCoors = [];
+            }
         }
+        return this.imageLayer;
     }
     createClaw(length = 250, padding = 50, color = 'red', amount = 1) {
         for (var i = 0; i < amount; i++) {
@@ -239,7 +265,27 @@ class EffectHandler {
         const pxData = this.ctx.getImageData(coor.x, coor.y, 1, 1).data;
         return pxData;
     }
-    drawLine(x1, y1, x2, y2, color = 'black', width = 1) {
+    drawLine(x1, y1, x2, y2, color = 'black', width = 1, innerColor = null, outerColor = null) {
+    if (innerColor && outerColor) {
+        // Outer stroke first (largest)
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.strokeStyle = outerColor;
+        this.ctx.lineWidth = width * 0.75; // outer = width/4 + width/2
+        this.ctx.stroke();
+        this.ctx.closePath();
+
+        // Inner stroke (on top, smaller)
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.strokeStyle = innerColor;
+        this.ctx.lineWidth = width * 0.5; // inner = width/2
+        this.ctx.stroke();
+        this.ctx.closePath();
+    } else {
+        // Normal single-color line
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
         this.ctx.lineTo(x2, y2);
@@ -248,9 +294,31 @@ class EffectHandler {
         this.ctx.stroke();
         this.ctx.closePath();
     }
-    drawCircle(x, y, radius, color = 'black', width = 1, fill = false) {
+}
+    drawCircle(x, y, radius, color = 'black', width = 1, fill = false, image = null) {
         this.ctx.beginPath();
         this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = width;
+
+        if (fill) {
+            if (image) {
+                // Use an image pattern as fill
+                const pattern = this.ctx.createPattern(image, "repeat"); // "repeat", "repeat-x", "repeat-y", or "no-repeat"
+                this.ctx.fillStyle = pattern;
+            } else {
+                // Fallback: solid color
+                this.ctx.fillStyle = color;
+            }
+            this.ctx.fill();
+        } else {
+            this.ctx.strokeStyle = color;
+            this.ctx.stroke();
+        }
+    }
+    drawSquare(x, y, size, color = 'black', width = 1, fill = false) {
+        this.ctx.beginPath();
+        this.ctx.rect(x-size/2, y-size/2, size, size);
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = width;
         if (fill) {
@@ -260,13 +328,6 @@ class EffectHandler {
             this.ctx.stroke();
         }
     }
-    drawSquare(x, y, size, color = 'black', width = 1, fill = false) {
-        this.ctx.beginPath();
-        this.ctx.rect(x, y, size, size);
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = width;
-        this.ctx.stroke();
-    }
     drawTriangle(x1, y1, x2, y2, x3, y3, color = 'black', width = 1, fill = false) {
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
@@ -275,15 +336,33 @@ class EffectHandler {
         this.ctx.closePath();
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = width;
-        this.ctx.stroke();
+        if (fill) {
+            this.ctx.fillStyle = color;
+            this.ctx.fill();
+        } else {
+            this.ctx.stroke();
+        }
     }
-    drawRectangle(x, y, width, height, color = 'black', width2 = 1, fill = false) {
-        this.ctx.beginPath();
-        this.ctx.rect(x, y, width, height);
+    drawRectangle(x, y, width, height, color = 'black', width2 = 1, fill = false, image = null) {
+    this.ctx.beginPath();
+    this.ctx.rect(x, y, width, height);
+    this.ctx.lineWidth = width2;
+
+    if (fill) {
+        if (image) {
+            // Use an image pattern as fill
+            const pattern = this.ctx.createPattern(image, "repeat"); // "repeat", "repeat-x", "repeat-y", or "no-repeat"
+            this.ctx.fillStyle = pattern;
+        } else {
+            // Fallback: solid color
+            this.ctx.fillStyle = color;
+        }
+        this.ctx.fill();
+    } else {
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = width2;
         this.ctx.stroke();
     }
+}
     drawLightning(x1, y1, x2, y2, color = 'yellow', width = 2) {
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
@@ -342,5 +421,97 @@ class EffectHandler {
     clearState() {
         this.state = null;
         this.effect = null;
+        this.dotHistory = {};
+    }
+    createRoom(state) {
+        if (state == 0) {
+            this.ctx.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight);
+            this.drawRectangle(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight, 'black', 1, true);
+            var numOfRectangles = Math.floor(Math.random() * 6) + 3; // 5 to 15 isles
+            var recentCoorOL = {x: 0, y: 0};
+            var recentCoorDR = {x: this.imageLayer.clientWidth, y: this.imageLayer.clientHeight};
+            var groundType = Object.keys(this.groundImages)[Math.floor(Math.random() * Object.keys(this.groundImages).length)];
+            console.log(groundType);
+            for (var i = 0; i < numOfRectangles; i++) {
+                var coor1 = null;
+                var coor2 = null;
+                for (var attempt = 0; attempt < 100; attempt++) {
+                    var coor1 = {x: Math.floor(Math.random() * (recentCoorDR.x - recentCoorOL.x) / 50 + recentCoorOL.x / 50) * 50,
+                            y: Math.floor(Math.random() * (recentCoorDR.y - recentCoorOL.y) / 50 + recentCoorOL.y / 50) * 50};
+                    var coor2 = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+                    var xLength = Math.abs(coor2.x - coor1.x);
+                    var yLength = Math.abs(coor2.y - coor1.y);
+                    var area = xLength * yLength;
+                    if (area > 50000) break;
+                }
+                var coorOL = {x: Math.min(coor1.x, coor2.x), y: Math.min(coor1.y, coor2.y)};
+                var coorDR = {x: Math.max(coor1.x, coor2.x), y: Math.max(coor1.y, coor2.y)};
+                recentCoorOL = coorOL;
+                recentCoorDR = coorDR;
+                this.drawRectangle(coorOL.x, coorOL.y, coorDR.x - coorOL.x + 50, coorDR.y - coorOL.y + 50, 'darkgray', 1, true, this.groundImages[groundType]);
+                
+            }
+        }
+        for (var obstacle = 0; obstacle < 3*state; obstacle++) {
+            var coor = null;
+            var coor2 = null;
+            for (var attempt = 0; attempt < 100; attempt++) {
+                coor = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+
+                if (this.getPxData(coor)[0] != 0) {
+                    break;
+                }
+            }
+            for (var attempt = 0; attempt < 100; attempt++) {
+                coor2 = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+                if (this.getPxData(coor2)[0] != 0) {
+                    break;
+                }
+            }
+            var lineColor = 'white';
+            if (state == 1) lineColor = 'lightgray';
+            if (state == 2) lineColor = 'gray';
+            if (state >= 3) lineColor = 'darkgray';
+            this.drawLine(coor.x, coor.y, coor2.x, coor2.y, 'black', 10, lineColor, 'black');
+        }
+        for (var obstacle = 0; obstacle < 2*state + 2; obstacle++) {
+            var coor = null;
+            for (var attempt = 0; attempt < 100; attempt++) {
+                coor = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+                if (this.getPxData(coor)[0] != 0) {
+                    break;
+                }
+            }
+            var effectType = Object.keys(this.effectImages)[Math.floor(Math.random() * Object.keys(this.effectImages).length)];
+            this.drawCircle(coor.x, coor.y, 30, 'red', 5, true, this.effectImages[effectType]);
+        }
+    }
+    getDistance(x1, y1, x2, y2) {
+        return {xDist: Math.abs(x2 - x1), yDist: Math.abs(y2 - y1), dist: Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)};
+    }
+    clearEffects() {
+        this.ctx.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight);
+        this.drawRectangle(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight, 'black', 1, true);
+        this.clearState();
+        return this.imageLayer;
+    }
+    uploadImage(imageSrc) {
+        if (!this.imageLayer) return;
+
+        const ctx = this.imageLayer.getContext("2d");
+        const img = new Image();
+
+        img.onload = () => {
+            // Clear old content
+            ctx.clearRect(0, 0, this.imageLayer.width, this.imageLayer.height);
+            // Draw new image
+            ctx.drawImage(img, 0, 0, this.imageLayer.width, this.imageLayer.height);
+        };
+
+        img.src = imageSrc;
     }
 }

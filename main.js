@@ -1,6 +1,3 @@
-//getOffsetInfo
-
-
 let cursorTrackerElement = null;
 
 // Enter-Taste im Name-Input

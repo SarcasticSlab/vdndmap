@@ -11,6 +11,7 @@
             <div class="status" id="status">Ready - Enter your name</div>
             <button class="toolbar-item" onclick="triggerImageUpload()">Upload Image</button>
             <button class="toolbar-item" id="event">Event</button>
+            <button class="toolbar-item" id="clearEffects">Clear Layers</button>
             <div class="big checkbox-wrapper-8">
                 <input class="tgl tgl-skewed" id="scaleToggle" type="checkbox"/>
                 <label class="tgl-btn" data-tg-off="Fixed Objects" data-tg-on="Changeable" for="scaleToggle"></label>
@@ -71,13 +72,13 @@
         🖱️ Right Mouse Button + Drag: Measure Distance<br>
         🖱️ Left Mouse Button: Open Menu for selected Token
     </div>
-
 <div id="canvas-container" style="position: relative;"> <!-- 3840x2160-->
-  <canvas id="image-layer"  class="canvas image-layer" width="1000" height="1000" style="z-index: 0;"></canvas>
-  <canvas id="effect-layer" class="canvas" width="1000" height="1000" style="z-index: 6;"></canvas>
-  <canvas id="grid-layer"   class="canvas" width="1000" height="1000" style="z-index: 7;"></canvas>
-  <canvas id="token-layer"  class="canvas" width="1000" height="1000" style="z-index: 8;"></canvas>
-  <canvas id="menu-layer"   class="canvas" width="1000" height="1000" style="z-index: 9;"></canvas>
+  <canvas id="image-layer"  class="canvas image-layer" style="z-index: 0;"></canvas>
+  <canvas id="effect-layer" class="canvas" style="z-index: 6;"></canvas>
+  <canvas id="grid-layer"   class="canvas" style="z-index: 7;"></canvas>
+  <canvas id="measure-layer"class="canvas" style="z-index: 8;"></canvas>
+  <canvas id="token-layer"  class="canvas" style="z-index: 9;"></canvas>
+  <canvas id="menu-layer"   class="canvas" style="z-index:10;"></canvas>
   <!--  pointer-events: none;-->
 </div>
     <div class="name-input" id="name-input">
@@ -106,4 +107,13 @@ function makeid(length) {
     }
     return result;
 }
+  const CANVAS_WIDTH = 1500;
+  const CANVAS_HEIGHT = 1000;
+
+  document.querySelectorAll("#canvas-container canvas").forEach(c => {
+    c.width = CANVAS_WIDTH;   // internal drawing size
+    c.height = CANVAS_HEIGHT;
+    c.style.width = CANVAS_WIDTH + "px";   // CSS size
+    c.style.height = CANVAS_HEIGHT + "px";
+  });
 </script>

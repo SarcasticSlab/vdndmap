@@ -35,7 +35,8 @@ class CursorTracker {
 		// Toggle stuff
 		this.fadeOutToggle = "measure-fade-off";
 		this.fadeOut = this.fadeOut.bind(this); // ✅ bind once here
-
+		this.triggerEvent = this.triggerEvent.bind(this); // ✅ bind once here
+		this.triggerClearEvent = this.triggerClearEvent.bind(this); // ✅ bind once here
 		this.pixelsForField = 30;
 		this.slider = document.getElementById("sliderControl");
 		this.thumbLabel = document.getElementById("sliderThumbLabel");
@@ -66,7 +67,9 @@ class CursorTracker {
 		document.getElementById("hexGrid").addEventListener("click", this.tokenHandlerElement.drawHexGrid);
 		document.getElementById("fadeOut").addEventListener("click", this.fadeOut);
 		document.getElementById("measurements").addEventListener("click", this.tokenHandlerElement.drawMeasurements);
-		document.getElementById("event").addEventListener("click", this.effectHandlerElement.trigger);
+		document.getElementById("event").addEventListener("click", this.triggerEvent);
+		document.getElementById("sliderControl").addEventListener("input", this.updateThumbLabel.bind(this));
+		document.getElementById("clearEffects").addEventListener("click", this.triggerClearEvent);
 		document.addEventListener("diceRolled", (event, e) => {
 			if (this.ws && this.isConnected) {
 				this.ws.send(JSON.stringify({
@@ -76,6 +79,27 @@ class CursorTracker {
 				}));
 			}
 		});
+	}
+		
+	triggerClearEvent() {
+		const canvas = this.effectHandlerElement.clearEffects();
+		if (this.ws && this.isConnected && canvas) {
+			this.ws.send(JSON.stringify({
+				type: 'effect_update',
+				userId: this.userId,
+				image: canvas.toDataURL("image/png")
+			}));
+		}
+	}
+	triggerEvent() {
+		var canvas = this.effectHandlerElement.trigger();
+		if (this.ws && this.isConnected && canvas) {
+			this.ws.send(JSON.stringify({
+				type: 'effect_update',
+				userId: this.userId,
+				image: canvas.toDataURL("image/png")
+			}));
+		}
 	}
 
 	fadeOut(e) {
@@ -163,6 +187,9 @@ class CursorTracker {
 			this.tokenHandlerElement.scaleToken(data.scale);
 		} else if (data.type === 'diceRolled' && data.userId !== this.userId) {
 			this.diceRolled(data);
+		} else if (data.type === 'effect_update' && data.userId !== this.userId) {
+			this.effectHandlerElement.uploadImage(data.image);
+			console.log(data);
 		} else {
 			console.warn('Unbekannte Nachricht vom Server:', data);
 		}
@@ -559,7 +586,6 @@ class CursorTracker {
 
 	updateThumbLabel() {
 		const val = parseInt(this.slider.value);
-
 		this.thumbLabel.textContent = val;
 		this.tokenHandlerElement.setPixelsForField(val);
 		this.pixelsForField = val;
