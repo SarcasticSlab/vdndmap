@@ -9,8 +9,9 @@ class EffectHandler {
         this.clearEffects = this.clearEffects.bind(this);
         this.state = null;
         this.effect = null;
-        this.listOfEffects = [/*'claws', 'growingDots', 'spikyTriangle','hexagons','lines', 'void', */'randomRoom'];
+        this.listOfEffects = ['claws', 'growingDots', 'spikyTriangle','hexagons','lines', 'void', 'randomRoom', 'growthRoom'];
         this.dotHistory = {};
+        this.voidLoops = 0;
         const patternFiles = ["brick-pattern.png", "forest-pattern.png", "grass-pattern.png", "grass-rock-pattern.png", "lava-pattern.png", "marmor-pattern.png", "magic-pattern.png", "magic-pattern-2.png", "sand-pattern.png", "stone-pattern.png", "stone-pattern-2.png", "water-pattern.png"];
         const effectFiles = ["energy-circle.png", "fire-circle.png"];
         this.groundImages = {};
@@ -24,6 +25,10 @@ class EffectHandler {
         const name = file.replace(/\.[^/.]+$/, "");
         this.effectImages[name] = new Image();
         this.effectImages[name].src = "/patterns/" + file;
+
+
+        this.grid = {};
+        this.gridSquareSize = 25;
         });
 	}
     getRandomEffect() {
@@ -46,6 +51,7 @@ class EffectHandler {
             this.ctx.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight);
             this.drawRectangle(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight, 'black', 1, true);
             this.dotHistory = {}; // Reset dot history
+            console.log("Triggering effect:", this.effect);
             if (this.effect == 'claws') {
                 this.createClaw(clawLength, clawPadding, 'red', 1);
                 this.state = 1;
@@ -70,6 +76,12 @@ class EffectHandler {
             } else if (this.effect == 'randomRoom') {
                 this.state = 0;
                 this.createRoom(this.state);
+            } else if (this.effect == 'growthRoom') {
+                this.state = 0;
+                this.initializeGrid();
+                this.setGridStartType('random');
+                this.setGridGrowthType('random');
+                this.growthRoom(this.state);
             }
         } else if (this.effect == 'claws') {
             this.state+=2;
@@ -82,11 +94,11 @@ class EffectHandler {
         } else if (this.effect == 'spikyTriangle') {
             this.state++;
             this.createSpikyTriangle(triangleSpikeLength, triangleSideLength, 'red', this.state);
-            if (this.state > 3 && Math.random() * 10 <= 5) this.clearState();
+            if (this.state > 3 && Math.random() * 10 <= 4) this.clearState();
         } else if (this.effect == 'hexagons') {
             this.state++;
             this.createHexagon(hexagonLength, hexagonSideLength, 'red', this.state);
-            if (this.state > 4 && Math.random() * 10 <= 5) this.clearState();
+            if (this.state > 4 && Math.random() * 10 <= this.state) this.clearState();
         } else if (this.effect == 'lines') {
             this.state++;
             this.createLines('red', this.state, linesWidth, true, linesStepLength);
@@ -94,7 +106,9 @@ class EffectHandler {
         } else if (this.effect == 'void') {
             this.state++;
             this.createVoid('darkgray', voidWidth);
-            if (this.state > 3) this.clearState();
+            if (this.voidLoops > 5) {
+                this.clearState();
+            };
         } else if (this.effect == 'randomRoom') {
             this.state++;
             this.createRoom(this.state);
@@ -102,9 +116,143 @@ class EffectHandler {
                 this.clearState();
                 this.isleCoors = [];
             }
+        } else if (this.effect == 'growthRoom') {
+            this.state++;
+            this.growthRoom(this.state);
+            if (this.state > 3) {
+                this.clearState();
+                this.growthRoomGrid = [];
+                this.growthRoomGrowthPoints = [];
+                this.growthRoomGroundType = null;
+                this.growthRoomFloorPoints = [];
+                this.grid['Growth_Type'] = null;
+            }
         }
         return this.imageLayer;
     }
+    initializeGrid() {
+        var maxWidth = Math.round(this.imageLayer.clientWidth / this.gridSquareSize);
+        var maxHeight = Math.round(this.imageLayer.clientHeight / this.gridSquareSize);
+        
+        for (let x = 0; x < maxWidth; x++) {
+            for (let y = 0; y < maxHeight; y++) {
+                this.grid[`${x},${y}`] = { type: 'void', x: x, y: y, isGrowth: false, isPointGrowth: false };
+            }
+        }
+        this.grid['size'] = { width: maxWidth, height: maxHeight };
+        this.grid['Growth_Types'] = ['Standard', 'PointExpansion', 'Removal'];
+        this.grid['Start_Types'] = ['Standard', 'Corners', 'Seeds', 'Squares'];
+        this.grid['Growth_Type'] = this.grid['Growth_Types'][Math.floor(Math.random() * this.grid['Growth_Types'].length)];
+        this.grid['Start_Type'] = this.grid['Start_Types'][Math.floor(Math.random() * this.grid['Start_Types'].length)];
+        this.grid['Std_Growth_Points'] = Math.floor(maxWidth * maxHeight / 5);
+        this.grid['Std_Growth_Points_Removal'] = Math.floor(maxWidth * maxHeight / 2);
+        this.grid['Add_Growth_Points'] = Math.floor(maxWidth * maxHeight / 20);
+        this.grid['Rem_Growth_Points'] = Math.floor(maxWidth * maxHeight / 10);
+        this.grid['Ground_Type'] = Object.keys(this.groundImages)[Math.floor(Math.random() * Object.keys(this.groundImages).length)];
+    }
+    getRandomGridPoint() {
+        var startX = Math.floor(Math.random() * (this.grid['size'].width - 2)) + 1;
+        var startY = Math.floor(Math.random() * (this.grid['size'].height - 2)) + 1;
+        return {x: startX, y: startY};
+    }
+    getGridPointsOfType(type) {
+        var fields = [];
+        for (const key in this.grid) {
+            if (this.grid[key].type == type) {
+                fields.push(this.grid[key]);
+            }
+        }
+        return fields;
+    }
+    getRandomGridPointOfGrowth(type = 'growth') {
+        var points = [];
+        if (type == 'growth') points = this.getGridPointsOfType('void').filter(pt => pt.isGrowth);
+        else if (type == 'pointGrowth') points = this.getGridPointsOfType('void').filter(pt => pt.isPointGrowth);
+        if (points.length > 0) {
+            return points[Math.floor(Math.random() * points.length)];
+        } else {
+            return null;
+        }
+    }
+    setGridGrowthType(type) {
+        if (this.grid['Growth_Types'].includes(type)) {
+            this.grid['Growth_Type'] = type;
+        } else {
+            this.grid['Growth_Type'] = this.grid['Growth_Types'][Math.floor(Math.random() * this.grid['Growth_Types'].length)];
+        }
+    }
+    setGridStartType(type) {
+        if (this.grid['Start_Types'].includes(type)) {
+            this.grid['Start_Type'] = type;
+        } else {
+            this.grid['Start_Type'] = this.grid['Start_Types'][Math.floor(Math.random() * this.grid['Start_Types'].length)];
+        }
+    }
+    setGridGroundType(type) {
+        if (Object.keys(this.groundImages).includes(type)) {
+            this.grid['Ground_Type'] = type;
+        } else {
+            this.grid['Ground_Type'] = Object.keys(this.groundImages)[Math.floor(Math.random() * Object.keys(this.groundImages).length)];
+        }
+    }
+    setGridPoint(pt, type, isGrowth = false, isPointGrowth = false) {
+        if (`${pt.x},${pt.y}` in this.grid) {
+            this.grid[`${pt.x},${pt.y}`].type = type;
+            this.grid[`${pt.x},${pt.y}`].isGrowth = isGrowth;
+            this.grid[`${pt.x},${pt.y}`].isPointGrowth = isPointGrowth;
+        }
+    }
+    setNeighborsToGrowth(pt, type = 'growth') {
+        var neighbors = this.getNeighbors(pt.x, pt.y);
+        for (const n of neighbors) {
+            if (n.x > 0 && n.x < this.grid['size'].width && n.y > 0 && n.y < this.grid['size'].height && this.grid[`${n.x},${n.y}`].type == 'void') {
+                this.grid[`${n.x},${n.y}`].isGrowth = true;
+                if (type == 'pointGrowth') this.grid[`${n.x},${n.y}`].isPointGrowth = true;
+            }
+        }
+    }
+    downgradeNeighbors(pt) {
+        var neighbors = this.getNeighbors(pt.x, pt.y);
+        for (const n of neighbors) {
+            if (n.x > 0 && n.x < this.grid['size'].width && n.y > 0 && n.y < this.grid['size'].height && this.grid[`${n.x},${n.y}`].type == 'Floor') {
+                this.grid[`${n.x},${n.y}`].type = 'growth';
+                this.grid[`${n.x},${n.y}`].isGrowth = true;
+                this.grid[`${n.x},${n.y}`].isPointGrowth = false;
+            }
+        }
+    }
+    clearUpGridGrowthPoints() {
+        for (const key in this.grid) {
+            if (this.grid[key].type == 'void') {
+                this.grid[key].isGrowth = false;
+                this.grid[key].isPointGrowth = false;
+            } else if (this.grid[key].type == 'growth') {
+                this.grid[key].type = 'void';
+                this.grid[key].isGrowth = false;
+                this.grid[key].isPointGrowth = false;
+            }
+        }
+        for (const key in this.grid) {
+            if (this.grid[key].type == 'Floor') {
+                this.setNeighborsToGrowth(this.grid[key], 'growth');
+            }
+        }
+    }
+    drawGrid() {
+        for (let x = 0; x < this.grid['size'].width; x++) {
+            for (let y = 0; y < this.grid['size'].height; y++) {
+                if (this.grid[`${x},${y}`].type == 'Floor') {
+                    this.drawRectangle(x * this.gridSquareSize, y * this.gridSquareSize, this.gridSquareSize, this.gridSquareSize, 'darkgray', 1, true, this.groundImages[this.grid['Ground_Type']]);
+                } else if (this.grid[`${x},${y}`].type == 'void' && (this.grid[`${x},${y}`].isGrowth || this.grid[`${x},${y}`].isPointGrowth)) {
+                    this.drawRectangle(x * this.gridSquareSize, y * this.gridSquareSize, this.gridSquareSize, this.gridSquareSize, '#111', 1, true);
+                } else {
+                    this.drawRectangle(x * this.gridSquareSize, y * this.gridSquareSize, this.gridSquareSize, this.gridSquareSize, 'black', 1, true);
+                }
+            }
+        }
+
+    }
+
     createClaw(length = 250, padding = 50, color = 'red', amount = 1) {
         for (var i = 0; i < amount; i++) {
             var angle = Math.random() * 2 * Math.PI;
@@ -114,10 +262,9 @@ class EffectHandler {
                          y: coor.y + padding * Math.sin(angle+Math.PI/2) }
             var coor3 = {x: coor.x - padding * Math.cos(angle+Math.PI/2),
                          y: coor.y - padding * Math.sin(angle+Math.PI/2) }
-            console.log(coor, coor2, coor3);
-            coor = this.drawLineDir(coor.x, coor.y, length, angle, color, 5);
-            coor2 = this.drawLineDir(coor2.x, coor2.y, length, angle, color, 5);
-            coor3 = this.drawLineDir(coor3.x, coor3.y, length, angle, color, 5);
+            coor = this.drawLineDir(coor.x, coor.y, length, angle, color, 5, false);
+            coor2 = this.drawLineDir(coor2.x, coor2.y, length, angle, color, 5, false);
+            coor3 = this.drawLineDir(coor3.x, coor3.y, length, angle, color, 5, false);
         }
     }
     createGrowingDots(radius = 25, color = 'red', amount = 10) {
@@ -167,15 +314,15 @@ class EffectHandler {
                 const obj = this.dotHistory[key];
                 this.drawTriangleDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), sideLength, obj.angle, color, 5, true);
                 if (obj.initial) {
-                    var coor1 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle, color, 5);
-                    var coor2 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle + 2 * Math.PI / 3, color, 5);
-                    var coor3 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle - 2 * Math.PI / 3, color, 5);
+                    var coor1 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle, color, 5, false);
+                    var coor2 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle + 2 * Math.PI / 3, color, 5, false);
+                    var coor3 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle - 2 * Math.PI / 3, color, 5, false);
                     this.dotHistory[`${coor1.x},${coor1.y}`] = {angle: obj.angle + Math.PI, initial: false};
                     this.dotHistory[`${coor2.x},${coor2.y}`] = {angle: obj.angle + Math.PI + 2 * Math.PI / 3, initial: false};
                     this.dotHistory[`${coor3.x},${coor3.y}`] = {angle: obj.angle + Math.PI - 2 * Math.PI / 3, initial: false};
                 } else {
-                    var coor2 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle + 2 * Math.PI / 3, color, 5);
-                    var coor3 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle - 2 * Math.PI / 3, color, 5);
+                    var coor2 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle + 2 * Math.PI / 3, color, 5, false);
+                    var coor3 = this.drawLineDir(parseInt(key.split(',')[0]), parseInt(key.split(',')[1]), length, obj.angle - 2 * Math.PI / 3, color, 5, false);
                     this.dotHistory[`${coor2.x},${coor2.y}`] = {angle: obj.angle + Math.PI + 2 * Math.PI / 3, initial: false};
                     this.dotHistory[`${coor3.x},${coor3.y}`] = {angle: obj.angle + Math.PI - 2 * Math.PI / 3, initial: false};
                 }
@@ -207,7 +354,6 @@ class EffectHandler {
     createVoid(color = 'red', width = 5) {
         const cW = this.imageLayer.clientWidth;
         const cH = this.imageLayer.clientHeight;
-        console.log(this.state);
         if (this.state == 0) {
             var coor1 = {x: Math.floor( Math.random() * 0.5 * cW),
                         y: Math.floor( Math.random() * 0.5 * cH)};
@@ -248,6 +394,7 @@ class EffectHandler {
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
             this.ctx.fill('evenodd');
             this.state = -1;
+            this.voidLoops++;
         }
     }
     triggerLines() {
@@ -266,35 +413,35 @@ class EffectHandler {
         return pxData;
     }
     drawLine(x1, y1, x2, y2, color = 'black', width = 1, innerColor = null, outerColor = null) {
-    if (innerColor && outerColor) {
-        // Outer stroke first (largest)
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        this.ctx.strokeStyle = outerColor;
-        this.ctx.lineWidth = width * 0.75; // outer = width/4 + width/2
-        this.ctx.stroke();
-        this.ctx.closePath();
+        if (innerColor && outerColor) {
+            // Outer stroke first (largest)
+            this.ctx.beginPath();
+            this.ctx.moveTo(x1, y1);
+            this.ctx.lineTo(x2, y2);
+            this.ctx.strokeStyle = outerColor;
+            this.ctx.lineWidth = width * 0.75; // outer = width/4 + width/2
+            this.ctx.stroke();
+            this.ctx.closePath();
 
-        // Inner stroke (on top, smaller)
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        this.ctx.strokeStyle = innerColor;
-        this.ctx.lineWidth = width * 0.5; // inner = width/2
-        this.ctx.stroke();
-        this.ctx.closePath();
-    } else {
-        // Normal single-color line
-        this.ctx.beginPath();
-        this.ctx.moveTo(x1, y1);
-        this.ctx.lineTo(x2, y2);
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = width;
-        this.ctx.stroke();
-        this.ctx.closePath();
+            // Inner stroke (on top, smaller)
+            this.ctx.beginPath();
+            this.ctx.moveTo(x1, y1);
+            this.ctx.lineTo(x2, y2);
+            this.ctx.strokeStyle = innerColor;
+            this.ctx.lineWidth = width * 0.5; // inner = width/2
+            this.ctx.stroke();
+            this.ctx.closePath();
+        } else {
+            // Normal single-color line
+            this.ctx.beginPath();
+            this.ctx.moveTo(x1, y1);
+            this.ctx.lineTo(x2, y2);
+            this.ctx.strokeStyle = color;
+            this.ctx.lineWidth = width;
+            this.ctx.stroke();
+            this.ctx.closePath();
+        }
     }
-}
     drawCircle(x, y, radius, color = 'black', width = 1, fill = false, image = null) {
         this.ctx.beginPath();
         this.ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -348,21 +495,21 @@ class EffectHandler {
     this.ctx.rect(x, y, width, height);
     this.ctx.lineWidth = width2;
 
-    if (fill) {
-        if (image) {
-            // Use an image pattern as fill
-            const pattern = this.ctx.createPattern(image, "repeat"); // "repeat", "repeat-x", "repeat-y", or "no-repeat"
-            this.ctx.fillStyle = pattern;
+        if (fill) {
+            if (image) {
+                // Use an image pattern as fill
+                const pattern = this.ctx.createPattern(image, "repeat"); // "repeat", "repeat-x", "repeat-y", or "no-repeat"
+                this.ctx.fillStyle = pattern;
+            } else {
+                // Fallback: solid color
+                this.ctx.fillStyle = color;
+            }
+            this.ctx.fill();
         } else {
-            // Fallback: solid color
-            this.ctx.fillStyle = color;
+            this.ctx.strokeStyle = color;
+            this.ctx.stroke();
         }
-        this.ctx.fill();
-    } else {
-        this.ctx.strokeStyle = color;
-        this.ctx.stroke();
     }
-}
     drawLightning(x1, y1, x2, y2, color = 'yellow', width = 2) {
         this.ctx.beginPath();
         this.ctx.moveTo(x1, y1);
@@ -489,6 +636,103 @@ class EffectHandler {
             var effectType = Object.keys(this.effectImages)[Math.floor(Math.random() * Object.keys(this.effectImages).length)];
             this.drawCircle(coor.x, coor.y, 30, 'red', 5, true, this.effectImages[effectType]);
         }
+    }
+    growthRoom(state) {
+        var remainingGrowthPoints = this.grid['Std_Growth_Points'];
+        //console.log(`Growth Room State: ${state}, Growth Type: ${this.grid['Growth_Type']}, Start Type: ${this.grid['Start_Type']}`);
+        if (state == 0) {
+            if (this.grid['Growth_Type'] == 'Removal') remainingGrowthPoints = this.grid['Std_Growth_Points_Removal'];
+            var startPt;
+            if (this.grid['Start_Type'] == 'Standard') {
+                startPt = this.getRandomGridPoint();
+                this.setGridPoint(startPt, 'Floor', false);
+                this.setNeighborsToGrowth(startPt);
+            } else if (this.grid['Start_Type'] == 'Corners') {
+                for (var corner = 0; corner < 4; corner++) {
+                    if (corner == 0) startPt = {x: 1, y: 1};
+                    else if (corner == 1) startPt = {x: this.grid['size'].width - 2, y: 1};
+                    else if (corner == 2) startPt = {x: this.grid['size'].width - 2, y: this.grid['size'].height - 2};
+                    else if (corner == 3) startPt = {x: 1, y: this.grid['size'].height - 2};
+                    this.setGridPoint(startPt, 'Floor', false);
+                    this.setNeighborsToGrowth(startPt);
+                }
+            } else if (this.grid['Start_Type'] == 'Center') {
+                startPt = {x: Math.floor(this.grid['size'].width / 2), y: Math.floor(this.grid['size'].height / 2)};
+                this.setGridPoint(startPt, 'Floor', false);
+                this.setNeighborsToGrowth(startPt);
+            } else if (this.grid['Start_Type'] == 'Seeds') {
+                var squareSize = Math.floor(Math.min(this.grid['size'].width, this.grid['size'].height) / 5);
+                var squares = Math.floor(Math.random() * 3) + 3; 
+                for (var x = 1; x < this.grid['size'].width; x += squareSize) {
+                    for (var y = 1; y < this.grid['size'].height; y += squareSize) {
+                        startPt = {x: x, y: y};
+                        this.setGridPoint(startPt, 'Floor', false);
+                        this.setNeighborsToGrowth(startPt);
+                    }
+                }
+            } else if (this.grid['Start_Type'] == 'Squares') {
+                var sizeFactor = (this.grid['Growth_Type'] == 'Removal') ? 2 : 1;
+                var squareFactor = (this.grid['Growth_Type'] == 'Removal') ? 3 : 1;
+                var squareSize = Math.floor(Math.min(this.grid['size'].width, this.grid['size'].height) / 5) * sizeFactor;
+                var squares = (Math.floor(Math.random() * 3) + 2) * squareFactor; // 2 to 4 squares, more for removal
+                for (var i = 0; i < squares; i++) {
+                    startPt = {x: Math.floor(Math.random() * (this.grid['size'].width - squareSize - 2)) + 1,
+                               y: Math.floor(Math.random() * (this.grid['size'].height - squareSize - 2)) + 1};
+                    for (var x = startPt.x; x < startPt.x + squareSize; x++) {
+                        for (var y = startPt.y; y < startPt.y + squareSize; y++) {
+                            this.setGridPoint({x: x, y: y}, 'Floor', false);
+                            this.setNeighborsToGrowth({x: x, y: y});
+                        }
+                    }
+                }
+                remainingGrowthPoints = 0;
+            }
+            for (var i=0; i < remainingGrowthPoints; i++) {
+                var growthPoint = this.getRandomGridPointOfGrowth();
+                this.setGridPoint(growthPoint, 'Floor', false);
+                this.setNeighborsToGrowth(growthPoint);
+            }
+            this.setGridGroundType('random');
+        } else {
+            remainingGrowthPoints = this.grid['Add_Growth_Points'];
+            for (var i = 0; i < remainingGrowthPoints; i++) {
+                if (this.grid['Growth_Type'] == 'Standard') {
+                    var growthPoint = this.getRandomGridPointOfGrowth();
+                    this.setGridPoint(growthPoint, 'Floor', false);
+                    this.setNeighborsToGrowth(growthPoint);
+                } else if (this.grid['Growth_Type'] == 'PointExpansion') {
+                    if (this.getRandomGridPointOfGrowth('pointGrowth') == null) {
+                        var growthPoint = this.getRandomGridPointOfGrowth();
+                        this.setGridPoint(growthPoint, 'Floor', false, false);
+                        this.setNeighborsToGrowth(growthPoint, 'pointGrowth');
+                    }
+                    
+                    var growthPoint = this.getRandomGridPointOfGrowth('pointGrowth');
+                    if (growthPoint) {
+                        this.setGridPoint(growthPoint, 'Floor', false, false);
+                        this.setNeighborsToGrowth(growthPoint, 'pointGrowth');
+                    }
+                } else if (this.grid['Growth_Type'] == 'Removal') {
+                    var removalPoint = this.getRandomGridPointOfGrowth();
+
+                    if (!removalPoint) {
+                        continue;
+                    }
+                    this.setGridPoint(removalPoint, 'void', false, false);
+                    this.downgradeNeighbors(removalPoint);
+                    this.clearUpGridGrowthPoints();
+                }
+            }
+        }
+
+        // Draw the grid
+        this.drawGrid();
+    }
+    getNeighbors(x,y) {
+        return [{ x: x + 1, y: y },
+                { x: x - 1, y: y },
+                { x: x, y: y + 1 },
+                { x: x, y: y - 1 }];
     }
     getDistance(x1, y1, x2, y2) {
         return {xDist: Math.abs(x2 - x1), yDist: Math.abs(y2 - y1), dist: Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)};
