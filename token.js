@@ -186,6 +186,7 @@ class TokenHandler {
 			this.tokens[this.menuId].updateScale(scale * targetLength / length);
 		}
 		this.drawTokens();
+		this.drawMenu();
 		return this.menuId;
 	}
 
@@ -391,7 +392,7 @@ class TokenHandler {
 	
 	drawMenu(token = this.tokens[this.menuId]) {
 		if (!this.isLogReducingOn) this.debugLog("drawMenu");
-		this.menuLayerCTX.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight); // clear previous
+		this.menuLayerCTX.clearRect(0, 0, this.menuLayer.clientWidth, this.menuLayer.clientHeight); // clear previous
 		this.menuLayerCTX.fillStyle = "#003300";
 		this.menuLayerCTX.font = '40px sans-serif';
 
@@ -407,7 +408,7 @@ class TokenHandler {
 	
 	clearMenu() {
 		if (!this.isLogReducingOn) this.debugLog("clearMenu");
-		this.menuLayerCTX.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight); // clear previous
+		this.menuLayerCTX.clearRect(0, 0, this.menuLayer.clientWidth, this.menuLayer.clientHeight); // clear previous
 		this.menuId = null;
 		this.menu = false;
 	}

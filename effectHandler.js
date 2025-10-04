@@ -1,7 +1,9 @@
 class EffectHandler {
 	constructor(tokenHandler) {
+        this.effectLayer = document.getElementById("effect-layer");
+        this.ctx = this.effectLayer.getContext("2d");
         this.imageLayer = document.getElementById("image-layer");
-        this.ctx = this.imageLayer.getContext("2d");
+        this.imageLayerCTX = this.imageLayer.getContext("2d");
         this.ctx.willReadFrequently = true; // For performance optimization
 		this.tokenHandler = tokenHandler;
 
@@ -9,13 +11,15 @@ class EffectHandler {
         this.clearEffects = this.clearEffects.bind(this);
         this.state = null;
         this.effect = null;
-        this.listOfEffects = ['claws', 'growingDots', 'spikyTriangle','hexagons','lines', 'void', 'randomRoom', 'growthRoom'];
+        this.listOfEffects = ['claws', 'growingDots'/*, 'spikyTriangle'*/,'hexagons','lines', 'void', 'randomRoom', 'growthRoom'];
         this.dotHistory = {};
         this.voidLoops = 0;
         const patternFiles = ["brick-pattern.png", "forest-pattern.png", "grass-pattern.png", "grass-rock-pattern.png", "lava-pattern.png", "marmor-pattern.png", "magic-pattern.png", "magic-pattern-2.png", "sand-pattern.png", "stone-pattern.png", "stone-pattern-2.png", "water-pattern.png"];
         const effectFiles = ["energy-circle.png", "fire-circle.png"];
+        const backgroundFiles = ['background_01.jpg', 'background_02.jpg'];
         this.groundImages = {};
         this.effectImages = {};
+        this.backgroundImages = {};
         patternFiles.forEach(file => {
         const name = file.replace(/\.[^/.]+$/, "");
         this.groundImages[name] = new Image();
@@ -25,7 +29,11 @@ class EffectHandler {
         const name = file.replace(/\.[^/.]+$/, "");
         this.effectImages[name] = new Image();
         this.effectImages[name].src = "/patterns/" + file;
-
+        backgroundFiles.forEach(file => {
+        const name = file.replace(/\.[^/.]+$/, "");
+        this.backgroundImages[name] = new Image();
+        this.backgroundImages[name].src = "/tokens/" + file;
+        });
 
         this.grid = {};
         this.gridSquareSize = 25;
@@ -48,8 +56,9 @@ class EffectHandler {
 
         if (this.state == null) {
             this.effect = this.getRandomEffect();
-            this.ctx.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight);
-            this.drawRectangle(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight, 'black', 1, true);
+            this.ctx.clearRect(0, 0, this.effectLayer.clientWidth, this.effectLayer.clientHeight);
+            //this.drawRectangle(0, 0, this.effectLayer.clientWidth, this.effectLayer.clientHeight, 'black', 1, true);
+            this.setBackground();
             this.dotHistory = {}; // Reset dot history
             console.log("Triggering effect:", this.effect);
             if (this.effect == 'claws') {
@@ -62,8 +71,8 @@ class EffectHandler {
                 this.createSpikyTriangle(triangleSpikeLength, triangleSideLength, 'red', 1);
                 this.state = 1;
             } else if (this.effect == 'hexagons') {
-                var coors = {x: Math.floor(Math.random() * this.imageLayer.clientWidth * 0.8 + 0.1 * this.imageLayer.clientWidth),
-                             y: Math.floor(Math.random() * this.imageLayer.clientHeight * 0.8 + 0.1 * this.imageLayer.clientHeight)};
+                var coors = {x: Math.floor(Math.random() * this.effectLayer.clientWidth * 0.8 + 0.1 * this.effectLayer.clientWidth),
+                             y: Math.floor(Math.random() * this.effectLayer.clientHeight * 0.8 + 0.1 * this.effectLayer.clientHeight)};
                 this.dotHistory[`${coors.x},${coors.y}`] = {angle: Math.random() * 2 * Math.PI, initial: true};
                 this.createHexagon(hexagonLength, hexagonSideLength, 'red', 1);
                 this.state = 1;
@@ -128,11 +137,19 @@ class EffectHandler {
                 this.grid['Growth_Type'] = null;
             }
         }
-        return this.imageLayer;
+        return this.effectLayer;
+    }
+    setBackground() {
+        var effectType = Object.keys(this.backgroundImages)[Math.floor(Math.random() * Object.keys(this.backgroundImages).length)];
+        console.log(effectType);
+    
+        const pattern = this.imageLayerCTX.createPattern(this.backgroundImages[effectType], "repeat"); // "repeat", "repeat-x", "repeat-y", or "no-repeat"
+        this.imageLayerCTX.fillStyle = pattern;
+        this.imageLayerCTX.stroke();
     }
     initializeGrid() {
-        var maxWidth = Math.round(this.imageLayer.clientWidth / this.gridSquareSize);
-        var maxHeight = Math.round(this.imageLayer.clientHeight / this.gridSquareSize);
+        var maxWidth = Math.round(this.effectLayer.clientWidth / this.gridSquareSize);
+        var maxHeight = Math.round(this.effectLayer.clientHeight / this.gridSquareSize);
         
         for (let x = 0; x < maxWidth; x++) {
             for (let y = 0; y < maxHeight; y++) {
@@ -256,8 +273,8 @@ class EffectHandler {
     createClaw(length = 250, padding = 50, color = 'red', amount = 1) {
         for (var i = 0; i < amount; i++) {
             var angle = Math.random() * 2 * Math.PI;
-            var coor = {x: Math.floor(Math.random() * this.imageLayer.clientWidth * 0.8 + 0.1 * this.imageLayer.clientWidth), 
-                        y: Math.floor(Math.random() * this.imageLayer.clientHeight * 0.8 + 0.1 * this.imageLayer.clientHeight)};
+            var coor = {x: Math.floor(Math.random() * this.effectLayer.clientWidth * 0.8 + 0.1 * this.effectLayer.clientWidth), 
+                        y: Math.floor(Math.random() * this.effectLayer.clientHeight * 0.8 + 0.1 * this.effectLayer.clientHeight)};
             var coor2 = {x: coor.x + padding * Math.cos(angle+Math.PI/2),
                          y: coor.y + padding * Math.sin(angle+Math.PI/2) }
             var coor3 = {x: coor.x - padding * Math.cos(angle+Math.PI/2),
@@ -272,8 +289,8 @@ class EffectHandler {
             this.dotHistory[key].radius += radius;
         }
         for (var i = 0; i < amount; i++) {
-            var coor = {x: Math.floor(Math.random() * this.imageLayer.clientWidth * 0.8 + 0.1 * this.imageLayer.clientWidth),
-                        y: Math.floor(Math.random() * this.imageLayer.clientHeight * 0.8 + 0.1 * this.imageLayer.clientHeight)};
+            var coor = {x: Math.floor(Math.random() * this.effectLayer.clientWidth * 0.8 + 0.1 * this.effectLayer.clientWidth),
+                        y: Math.floor(Math.random() * this.effectLayer.clientHeight * 0.8 + 0.1 * this.effectLayer.clientHeight)};
             if (`${coor.x},${coor.y}` in this.dotHistory) {
                 // If the dot already exists, increase its radius and step
                 this.dotHistory[`${coor.x},${coor.y}`].radius += radius;
@@ -334,26 +351,26 @@ class EffectHandler {
         for (var i = 0; i < amount; i++) {
             var startSide = Math.floor(Math.random() * 4);
             if (startSide == 0 || startSide == 2) { // Top or Bottom
-                var x = Math.floor(Math.random() * this.imageLayer.clientWidth);
-                var xTarget = Math.floor(Math.random() * this.imageLayer.clientWidth);
-                var angle = this.getAngleBetweenPoints(x, 0, xTarget, this.imageLayer.clientHeight);
-                var y = (startSide == 0) ? 0 : this.imageLayer.clientHeight;
+                var x = Math.floor(Math.random() * this.effectLayer.clientWidth);
+                var xTarget = Math.floor(Math.random() * this.effectLayer.clientWidth);
+                var angle = this.getAngleBetweenPoints(x, 0, xTarget, this.effectLayer.clientHeight);
+                var y = (startSide == 0) ? 0 : this.effectLayer.clientHeight;
                 //var angle = Math.random() * Math.PI / 2 + Math.PI / 4 + (1 - startSide) * Math.PI; // Random angle
                 this.drawLineDir(x, y, 5000, angle, color, width, blockable, stepLength);
             } else {
-                var y = Math.floor(Math.random() * this.imageLayer.clientHeight);
-                var yTarget = Math.floor(Math.random() * this.imageLayer.clientHeight);
-                var angle = this.getAngleBetweenPoints(0, y, this.imageLayer.clientWidth, yTarget);
+                var y = Math.floor(Math.random() * this.effectLayer.clientHeight);
+                var yTarget = Math.floor(Math.random() * this.effectLayer.clientHeight);
+                var angle = this.getAngleBetweenPoints(0, y, this.effectLayer.clientWidth, yTarget);
                 //var angle = Math.random() * Math.PI / 2 + 3 * Math.PI / 4 + (3 - startSide) * Math.PI / 2; // Random angle
-                var x = (startSide == 1) ? 0 : this.imageLayer.clientWidth;
+                var x = (startSide == 1) ? 0 : this.effectLayer.clientWidth;
                 var angle = Math.random() * Math.PI /2 + 3 * Math.PI / 4 + (3 - startSide) * Math.PI / 2;
                 this.drawLineDir(x, y, 5000, angle, color, width, blockable, stepLength);
             }
         }
     }
     createVoid(color = 'red', width = 5) {
-        const cW = this.imageLayer.clientWidth;
-        const cH = this.imageLayer.clientHeight;
+        const cW = this.effectLayer.clientWidth;
+        const cH = this.effectLayer.clientHeight;
         if (this.state == 0) {
             var coor1 = {x: Math.floor( Math.random() * 0.5 * cW),
                         y: Math.floor( Math.random() * 0.5 * cH)};
@@ -383,9 +400,9 @@ class EffectHandler {
         if (this.state == 4) {
             this.ctx.beginPath();
             this.ctx.moveTo(0,0);
-            this.ctx.lineTo(this.imageLayer.clientWidth, 0);
-            this.ctx.lineTo(this.imageLayer.clientWidth, this.imageLayer.clientHeight);
-            this.ctx.lineTo(0, this.imageLayer.clientHeight);
+            this.ctx.lineTo(this.effectLayer.clientWidth, 0);
+            this.ctx.lineTo(this.effectLayer.clientWidth, this.effectLayer.clientHeight);
+            this.ctx.lineTo(0, this.effectLayer.clientHeight);
             this.ctx.moveTo(this.dotHistory[0].x, this.dotHistory[0].y);
             this.ctx.lineTo(this.dotHistory[1].x, this.dotHistory[1].y);
             this.ctx.lineTo(this.dotHistory[2].x, this.dotHistory[2].y);
@@ -398,7 +415,7 @@ class EffectHandler {
         }
     }
     triggerLines() {
-        //var coor = {x: Math.floor(Math.random() * this.imageLayer.clientWidth * 0.5 + 100), y: Math.floor(Math.random() * this.imageLayer.clientHeight * 0.5 + 100)};
+        //var coor = {x: Math.floor(Math.random() * this.effectLayer.clientWidth * 0.5 + 100), y: Math.floor(Math.random() * this.effectLayer.clientHeight * 0.5 + 100)};
         var coor = {x: 100, y: 100};
         for (var lineStep=0; lineStep < 10; lineStep++) {
             var angle = Math.random() * 2 * Math.PI;
@@ -572,11 +589,11 @@ class EffectHandler {
     }
     createRoom(state) {
         if (state == 0) {
-            this.ctx.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight);
-            this.drawRectangle(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight, 'black', 1, true);
+            this.ctx.clearRect(0, 0, this.effectLayer.clientWidth, this.effectLayer.clientHeight);
+            this.drawRectangle(0, 0, this.effectLayer.clientWidth, this.effectLayer.clientHeight, 'black', 1, true);
             var numOfRectangles = Math.floor(Math.random() * 6) + 3; // 5 to 15 isles
             var recentCoorOL = {x: 0, y: 0};
-            var recentCoorDR = {x: this.imageLayer.clientWidth, y: this.imageLayer.clientHeight};
+            var recentCoorDR = {x: this.effectLayer.clientWidth, y: this.effectLayer.clientHeight};
             var groundType = Object.keys(this.groundImages)[Math.floor(Math.random() * Object.keys(this.groundImages).length)];
             console.log(groundType);
             for (var i = 0; i < numOfRectangles; i++) {
@@ -585,8 +602,8 @@ class EffectHandler {
                 for (var attempt = 0; attempt < 100; attempt++) {
                     var coor1 = {x: Math.floor(Math.random() * (recentCoorDR.x - recentCoorOL.x) / 50 + recentCoorOL.x / 50) * 50,
                             y: Math.floor(Math.random() * (recentCoorDR.y - recentCoorOL.y) / 50 + recentCoorOL.y / 50) * 50};
-                    var coor2 = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
-                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+                    var coor2 = {x: Math.floor(Math.random() * this.effectLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.effectLayer.clientHeight / 50) * 50};
                     var xLength = Math.abs(coor2.x - coor1.x);
                     var yLength = Math.abs(coor2.y - coor1.y);
                     var area = xLength * yLength;
@@ -604,16 +621,16 @@ class EffectHandler {
             var coor = null;
             var coor2 = null;
             for (var attempt = 0; attempt < 100; attempt++) {
-                coor = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
-                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+                coor = {x: Math.floor(Math.random() * this.effectLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.effectLayer.clientHeight / 50) * 50};
 
                 if (this.getPxData(coor)[0] != 0) {
                     break;
                 }
             }
             for (var attempt = 0; attempt < 100; attempt++) {
-                coor2 = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
-                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+                coor2 = {x: Math.floor(Math.random() * this.effectLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.effectLayer.clientHeight / 50) * 50};
                 if (this.getPxData(coor2)[0] != 0) {
                     break;
                 }
@@ -627,8 +644,8 @@ class EffectHandler {
         for (var obstacle = 0; obstacle < 2*state + 2; obstacle++) {
             var coor = null;
             for (var attempt = 0; attempt < 100; attempt++) {
-                coor = {x: Math.floor(Math.random() * this.imageLayer.clientWidth / 50) * 50,
-                            y: Math.floor(Math.random() * this.imageLayer.clientHeight / 50) * 50};
+                coor = {x: Math.floor(Math.random() * this.effectLayer.clientWidth / 50) * 50,
+                            y: Math.floor(Math.random() * this.effectLayer.clientHeight / 50) * 50};
                 if (this.getPxData(coor)[0] != 0) {
                     break;
                 }
@@ -738,22 +755,22 @@ class EffectHandler {
         return {xDist: Math.abs(x2 - x1), yDist: Math.abs(y2 - y1), dist: Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)};
     }
     clearEffects() {
-        this.ctx.clearRect(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight);
-        this.drawRectangle(0, 0, this.imageLayer.clientWidth, this.imageLayer.clientHeight, 'black', 1, true);
+        this.ctx.clearRect(0, 0, this.effectLayer.clientWidth, this.effectLayer.clientHeight);
+        this.drawRectangle(0, 0, this.effectLayer.clientWidth, this.effectLayer.clientHeight, 'black', 1, true);
         this.clearState();
-        return this.imageLayer;
+        return this.effectLayer;
     }
     uploadImage(imageSrc) {
-        if (!this.imageLayer) return;
+        if (!this.effectLayer) return;
 
-        const ctx = this.imageLayer.getContext("2d");
+        const ctx = this.effectLayer.getContext("2d");
         const img = new Image();
 
         img.onload = () => {
             // Clear old content
-            ctx.clearRect(0, 0, this.imageLayer.width, this.imageLayer.height);
+            ctx.clearRect(0, 0, this.effectLayer.width, this.effectLayer.height);
             // Draw new image
-            ctx.drawImage(img, 0, 0, this.imageLayer.width, this.imageLayer.height);
+            ctx.drawImage(img, 0, 0, this.effectLayer.width, this.effectLayer.height);
         };
 
         img.src = imageSrc;
